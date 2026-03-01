@@ -11,7 +11,13 @@ class AuthState {
   final String? role; // Added role
   final String? error;
 
-  AuthState({this.isLoading = false, this.token, this.userName, this.role, this.error});
+  AuthState({
+    this.isLoading = false,
+    this.token,
+    this.userName,
+    this.role,
+    this.error,
+  });
 
   bool get isAuthenticated => token != null;
   bool get isAdmin => role == 'admin';
@@ -59,10 +65,10 @@ class AuthNotifier extends StateNotifier<AuthState> {
           String? userName;
           String? role;
           if (data['user'] != null) {
-             userName = data['user']['name'];
-             role = data['user']['role'];
-             await prefs.setString('userName', userName ?? '');
-             await prefs.setString('role', role ?? 'pharmacist');
+            userName = data['user']['name'];
+            role = data['user']['role'];
+            await prefs.setString('userName', userName ?? '');
+            await prefs.setString('role', role ?? 'pharmacist');
           }
 
           state = AuthState(

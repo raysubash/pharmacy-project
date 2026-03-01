@@ -18,7 +18,7 @@ router.post("/signup", async (req, res) => {
       name,
       email,
       password,
-      role: 'pharmacist' // Explicitly set role to pharmacist
+      role: "pharmacist", // Explicitly set role to pharmacist
     });
 
     const salt = await bcrypt.genSalt(10);
@@ -38,12 +38,10 @@ router.post("/signup", async (req, res) => {
       { expiresIn: 360000 },
       (err, token) => {
         if (err) throw err;
-        res
-          .status(201)
-          .json({
-            token,
-            user: { id: user.id, name: user.name, email: user.email },
-          });
+        res.status(201).json({
+          token,
+          user: { id: user.id, name: user.name, email: user.email },
+        });
       },
     );
   } catch (err) {
@@ -81,7 +79,12 @@ router.post("/login", async (req, res) => {
         if (err) throw err;
         res.json({
           token,
-          user: { id: user.id, name: user.name, email: user.email, role: user.role || 'pharmacist' },
+          user: {
+            id: user.id,
+            name: user.name,
+            email: user.email,
+            role: user.role || "pharmacist",
+          },
         });
       },
     );

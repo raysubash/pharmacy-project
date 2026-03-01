@@ -13,7 +13,7 @@ app.use(express.json());
 // MongoDB Connection
 const MONGO_URI = process.env.MONGO_URI || "mongodb://localhost:27017/pharmacy";
 
-const seedAdmin = require('./seedAdmin');
+const seedAdmin = require("./seedAdmin");
 
 mongoose
   .connect(MONGO_URI)

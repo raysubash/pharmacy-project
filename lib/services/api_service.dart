@@ -196,7 +196,7 @@ class ApiService {
           'purchase_order_name': purchaseOrderName,
           'customer_info': customerInfo,
           'return_url':
-              "http://localhost:5000/api/subscription/khalti-callback", // Override if needed
+              "https://pharmacy-project-wkdo.onrender.com/api/subscription/khalti-callback", // Override if needed
         },
       );
       return response.data;

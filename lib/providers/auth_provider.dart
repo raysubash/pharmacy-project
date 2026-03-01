@@ -43,7 +43,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
   AuthNotifier() : super(AuthState());
 
   static const String _baseUrl =
-      'http://localhost:5000/api/auth'; // Adjust if needed for Emulator (10.0.2.2)
+      'https://pharmacy-project-wkdo.onrender.com/api/auth'; // Use live server URL
 
   Future<void> login(String email, String password) async {
     state = state.copyWith(isLoading: true, error: null);

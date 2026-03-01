@@ -10,7 +10,8 @@ import '../../providers/medicine_provider.dart';
 import '../../utils/theme.dart';
 
 class AddReturnScreen extends ConsumerStatefulWidget {
-  const AddReturnScreen({super.key});
+  final ReturnItem? itemToEdit;
+  const AddReturnScreen({super.key, this.itemToEdit});
 
   @override
   ConsumerState<AddReturnScreen> createState() => _AddReturnScreenState();
@@ -21,7 +22,6 @@ class _AddReturnScreenState extends ConsumerState<AddReturnScreen> {
   final _medicineController = TextEditingController();
   final _batchController = TextEditingController();
   final _qtyController = TextEditingController();
-  final _reasonController = TextEditingController(); // Or dropdown
   final _dateController = TextEditingController();
 
   String _status = 'Pending';
@@ -30,7 +30,6 @@ class _AddReturnScreenState extends ConsumerState<AddReturnScreen> {
     'Approved',
     'Returned',
     'Rejected',
-    'Reminder',
   ];
   final List<String> _reasons = ['Expired', 'Damaged', 'Wrong Item', 'Other'];
   String? _selectedReason;
@@ -42,6 +41,23 @@ class _AddReturnScreenState extends ConsumerState<AddReturnScreen> {
   @override
   void initState() {
     super.initState();
+    if (widget.itemToEdit != null) {
+      final item = widget.itemToEdit!;
+      _medicineController.text = item.medicineName;
+      _batchController.text = item.batchNumber;
+      _qtyController.text = item.quantity.toString();
+      _selectedDate = item.returnDate;
+      _status = item.status;
+      _isReminder = item.status == 'Reminder';
+      
+      if (_reasons.contains(item.reason)) {
+        _selectedReason = item.reason;
+      } else {
+        _selectedReason = 'Other'; 
+        // Note: If 'Other' was used and custom text was saved, we might lose it if we don't handle it.
+        // For now assuming reason is one of the list.
+      }
+    }
     _dateController.text = DateFormat('yyyy-MM-dd').format(_selectedDate);
   }
 
@@ -50,7 +66,6 @@ class _AddReturnScreenState extends ConsumerState<AddReturnScreen> {
     _medicineController.dispose();
     _batchController.dispose();
     _qtyController.dispose();
-    _reasonController.dispose();
     _dateController.dispose();
     super.dispose();
   }
@@ -81,23 +96,37 @@ class _AddReturnScreenState extends ConsumerState<AddReturnScreen> {
     }
 
     final returnItem = ReturnItem(
-      id: const Uuid().v4(),
+      id: widget.itemToEdit?.id ?? const Uuid().v4(),
       medicineName: _medicineController.text.trim(),
       batchNumber: _batchController.text.trim(),
       quantity: int.parse(_qtyController.text.trim()),
       reason: _selectedReason!,
       returnDate: _selectedDate,
       status: _isReminder ? 'Reminder' : _status,
+      refundAmount: widget.itemToEdit?.refundAmount,
+      originalBillNo: widget.itemToEdit?.originalBillNo,
+      expiryDate: widget.itemToEdit?.expiryDate,
+      supplierName: widget.itemToEdit?.supplierName,
     );
 
     try {
-      await ref.read(returnProvider.notifier).addReturn(returnItem);
+      if (widget.itemToEdit == null) {
+        await ref.read(returnProvider.notifier).addReturn(returnItem);
+        if (mounted) {
+           ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Return added successfully')),
+          );
+        }
+      } else {
+        await ref.read(returnProvider.notifier).updateReturn(returnItem.id, returnItem);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Return updated successfully')),
+          );
+        }
+      }
+      
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Return added successfully')),
-        );
-        // Navigate back to history list
-        // Assuming /returns is the history page
         context.pop();
       }
     } catch (e) {
@@ -112,7 +141,7 @@ class _AddReturnScreenState extends ConsumerState<AddReturnScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Add Return Request')),
+      appBar: AppBar(title: Text(widget.itemToEdit == null ? 'Add Return Request' : 'Edit Return Request')),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Form(

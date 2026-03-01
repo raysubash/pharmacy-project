@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/return_model.dart';
 import '../models/bill_model.dart';
+import '../models/medicine_model.dart';
 import '../screens/home_shell.dart';
 import '../screens/dashboard/dashboard_screen.dart';
 import '../screens/inventory/medicine_inventory_screen.dart';
@@ -84,6 +85,13 @@ final routerProvider = Provider<GoRouter>((ref) {
                     path: 'add',
                     builder: (context, state) => const AddMedicineScreen(),
                   ),
+                  GoRoute(
+                    path: 'edit',
+                    builder:
+                        (context, state) => AddMedicineScreen(
+                          medicineToEdit: state.extra as Medicine?,
+                        ),
+                  ),
                 ],
               ),
             ],
@@ -114,6 +122,12 @@ final routerProvider = Provider<GoRouter>((ref) {
                   GoRoute(
                     path: 'add',
                     builder: (context, state) => const AddReturnScreen(),
+                  ),
+                  GoRoute(
+                    path: 'edit',
+                    builder: (context, state) => AddReturnScreen(
+                      itemToEdit: state.extra as ReturnItem?,
+                    ),
                   ),
                 ],
               ),

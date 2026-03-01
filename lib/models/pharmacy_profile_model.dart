@@ -1,9 +1,20 @@
+import 'package:hive/hive.dart';
+
+part 'pharmacy_profile_model.g.dart';
+
+@HiveType(typeId: 8)
 class PharmacyProfile {
+  @HiveField(0)
   String id;
+  @HiveField(1)
   String name;
+  @HiveField(2)
   String location;
+  @HiveField(3)
   String panNumber;
+  @HiveField(4)
   String phoneNumber;
+  @HiveField(5)
   SubscriptionInfo? subscription;
 
   PharmacyProfile({
@@ -40,11 +51,17 @@ class PharmacyProfile {
   }
 }
 
+@HiveType(typeId: 7)
 class SubscriptionInfo {
+  @HiveField(0)
   String plan;
+  @HiveField(1)
   DateTime? startDate;
+  @HiveField(2)
   DateTime? expiryDate;
+  @HiveField(3)
   bool isActive;
+  @HiveField(4)
   String? paymentProofImage;
 
   SubscriptionInfo({

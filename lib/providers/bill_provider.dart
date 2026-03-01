@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/bill_model.dart';
-import '../services/api_service.dart';
+import '../services/local_storage_service.dart';
 
 final billProvider = AsyncNotifierProvider<BillNotifier, List<PurchaseBill>>(
   () {
@@ -11,13 +11,13 @@ final billProvider = AsyncNotifierProvider<BillNotifier, List<PurchaseBill>>(
 class BillNotifier extends AsyncNotifier<List<PurchaseBill>> {
   @override
   Future<List<PurchaseBill>> build() async {
-    return ApiService.getAllBills();
+    return LocalStorageService.getAllBills();
   }
 
   Future<void> addBill(PurchaseBill bill) async {
     state = const AsyncValue.loading();
     try {
-      await ApiService.addPurchaseBill(bill);
+      await LocalStorageService.addBill(bill);
       ref.invalidateSelf();
     } catch (e) {
       // Handle error
@@ -26,7 +26,7 @@ class BillNotifier extends AsyncNotifier<List<PurchaseBill>> {
 
   Future<void> deleteBill(String id) async {
     try {
-      await ApiService.deleteBill(id);
+      await LocalStorageService.deleteBill(id);
       ref.invalidateSelf();
     } catch (e) {
       // Handle error

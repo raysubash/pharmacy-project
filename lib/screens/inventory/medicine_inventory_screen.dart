@@ -59,6 +59,29 @@ class _MedicineInventoryScreenState
     }
   }
 
+  void _confirmDelete(Medicine medicine) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Medicine'),
+        content: Text('Are you sure you want to delete ${medicine.name}?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () {
+              ref.read(medicineProvider.notifier).deleteMedicine(medicine.id);
+              Navigator.pop(context);
+            },
+            child: const Text('Delete', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final medicinesAsyncValue = ref.watch(medicineProvider);
@@ -327,8 +350,22 @@ class _MedicineInventoryScreenState
                             const SizedBox(height: 12),
                             // Actions Row
                             Row(
-                              mainAxisAlignment: MainAxisAlignment.end,
                               children: [
+                                // Edit Button
+                                IconButton(
+                                  icon: const Icon(Icons.edit, color: Colors.blue),
+                                  onPressed: () {
+                                    context.push('/medicines/edit', extra: medicine);
+                                  },
+                                  tooltip: 'Edit Medicine',
+                                ),
+                                // Delete Button
+                                IconButton(
+                                  icon: const Icon(Icons.delete, color: Colors.red),
+                                  onPressed: () => _confirmDelete(medicine),
+                                  tooltip: 'Delete Medicine',
+                                ),
+                                const Spacer(),
                                 _buildQuantityButton(
                                   icon: Icons.remove,
                                   color: const Color(0xFFEFF3F6),
@@ -336,7 +373,7 @@ class _MedicineInventoryScreenState
                                   onTap: () => _updateStock(medicine, -1),
                                 ),
                                 Container(
-                                  width: 60,
+                                  width: 40,
                                   alignment: Alignment.center,
                                   child: Text(
                                     '${medicine.currentStock}',

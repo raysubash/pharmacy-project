@@ -1,20 +1,52 @@
-enum MeasureUnit { tablet, syrup, capsule, injection, other }
+import 'package:hive/hive.dart';
 
+part 'medicine_model.g.dart';
+
+@HiveType(typeId: 0)
+enum MeasureUnit {
+  @HiveField(0)
+  tablet,
+  @HiveField(1)
+  syrup,
+  @HiveField(2)
+  capsule,
+  @HiveField(3)
+  injection,
+  @HiveField(4)
+  other,
+}
+
+@HiveType(typeId: 1)
 class Medicine {
+  @HiveField(0)
   final String id;
+  @HiveField(1)
   final String name;
+  @HiveField(2)
   final String? genericName;
+  @HiveField(3)
   final String category;
+  @HiveField(4)
   final MeasureUnit unit;
+  @HiveField(5)
   final int minStock;
+  @HiveField(6)
   final double sellingPrice;
+  @HiveField(7)
   final String? storageLocation;
+  @HiveField(8)
   int currentStock;
+  @HiveField(9)
   final String? brandName;
+  @HiveField(10)
   final String? packaging;
+  @HiveField(11)
   final double? mrp;
+  @HiveField(12)
   final String? imagePath;
+  @HiveField(13)
   final String? batchNumber;
+  @HiveField(14)
   final DateTime? expiryDate;
 
   Medicine({

@@ -54,6 +54,8 @@ dependencies:
   khalti_checkout_flutter: ^1.0.0-dev.9
   permission_handler: ^12.0.1
   full_screen_image: ^2.0.0
+  hive: ^2.2.3
+  hive_flutter: ^1.1.0
 
 dependency_overrides:
   vector_math: ^2.1.5
@@ -64,6 +66,7 @@ dev_dependencies:
   flutter_launcher_icons: ^0.13.1
   build_runner: ^2.5.4
   flutter_lints: ^5.0.0
+  hive_generator: ^2.0.1
 
 flutter_launcher_icons:
   android: "launcher_icon"

@@ -47,6 +47,10 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
   Future<void> login(String email, String password) async {
     state = state.copyWith(isLoading: true, error: null);
+
+    // Add local bypass for demo/offline logic if desired
+    // For now, let's try network first, then check local if needed (not fully implemented yet)
+
     try {
       final response = await http.post(
         Uri.parse('$_baseUrl/login'),
@@ -92,6 +96,20 @@ class AuthNotifier extends StateNotifier<AuthState> {
     } catch (e) {
       state = state.copyWith(isLoading: false, error: e.toString());
     }
+  }
+
+  Future<void> loginAsGuest() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('token', 'guest_token');
+    await prefs.setString('userName', 'Pharmacist (Offline)');
+    await prefs.setString('role', 'pharmacist');
+
+    state = AuthState(
+      isLoading: false,
+      token: 'guest_token',
+      userName: 'Pharmacist (Offline)',
+      role: 'pharmacist',
+    );
   }
 
   Future<void> signup(String name, String email, String password) async {

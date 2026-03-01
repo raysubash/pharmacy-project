@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../providers/bill_provider.dart';
 import '../../utils/theme.dart';
 import '../../widgets/app_drawer.dart';
@@ -15,6 +16,12 @@ class PurchaseBillScreen extends ConsumerWidget {
     return Scaffold(
       drawer: const AppDrawer(),
       appBar: AppBar(title: const Text('Purchase Bills')),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          context.go('/bills/add');
+        },
+        child: const Icon(Icons.add),
+      ),
       body: billsAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (err, stack) => Center(child: Text('Error: $err')),

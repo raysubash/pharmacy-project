@@ -9,6 +9,7 @@ import '../../providers/medicine_provider.dart';
 import '../../providers/bill_provider.dart';
 import '../../providers/sale_provider.dart'; // Added for Sales Reports
 import '../../providers/profile_provider.dart';
+import '../../providers/auth_provider.dart'; // Import auth provider
 import '../../utils/theme.dart';
 import '../../widgets/app_drawer.dart';
 
@@ -396,89 +397,153 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     double sales,
   ) async {
     final pdf = pw.Document();
-    // Use ref from state if needed, but here it is passed as argument which is fine.
-    // However, since we are now in a ConsumerState, we might want to use 'ref' property instead of argument to avoid shadowing.
-    // Or just rename argument. But existing code uses 'ref'.
-    // Let's keep it as is, it's a valid method in the class.
-
     final profile = await ref.read(profileProvider.future);
+    final user = ref.read(authProvider);
+    final now = DateTime.now();
 
     pdf.addPage(
       pw.Page(
+        margin: const pw.EdgeInsets.all(30),
         build: (pw.Context context) {
           return pw.Column(
             crossAxisAlignment: pw.CrossAxisAlignment.start,
             children: [
-              pw.Header(
-                level: 0,
+              // --- Header Section (Matching Bill) ---
+              pw.Center(
                 child: pw.Column(
-                  crossAxisAlignment: pw.CrossAxisAlignment.start,
                   children: [
                     pw.Text(
-                      (profile?.name ?? 'PHARMACY REPORT').toUpperCase(),
+                      (profile?.name ?? 'PHARMACY NAME').toUpperCase(),
                       style: pw.TextStyle(
-                        fontSize: 24,
                         fontWeight: pw.FontWeight.bold,
+                        fontSize: 18,
                       ),
                     ),
-                    if (profile != null) ...[
-                      pw.SizedBox(height: 4),
-                      pw.Text('PAN: ${profile.panNumber}'),
-                      pw.Text(profile.location),
-                      pw.Text('Phone: ${profile.phoneNumber}'),
-                    ],
-                    pw.SizedBox(height: 10),
+                    pw.SizedBox(height: 4),
+                    pw.Text('PAN: ${profile?.panNumber ?? ''}'),
+                    pw.Text(profile?.location ?? ''),
+                    pw.Text('Phone: ${profile?.phoneNumber ?? ''}'),
                   ],
                 ),
               ),
+              pw.SizedBox(height: 20),
+              pw.Divider(borderStyle: pw.BorderStyle.dashed),
               pw.SizedBox(height: 10),
-              pw.Text(
-                'Full Business Report',
-                style: pw.TextStyle(
-                  fontSize: 18,
-                  fontWeight: pw.FontWeight.bold,
-                  decoration: pw.TextDecoration.underline,
+
+              // Report Title & Date
+              pw.Center(
+                child: pw.Text(
+                  'BUSINESS REPORT',
+                  style: pw.TextStyle(
+                    fontWeight: pw.FontWeight.bold,
+                    fontSize: 16,
+                    decoration: pw.TextDecoration.underline,
+                  ),
                 ),
               ),
-              pw.SizedBox(height: 8),
-              pw.Text('Generated on: ${DateTime.now().toString()}'),
-              pw.Divider(),
-              pw.SizedBox(height: 10),
-              pw.Text(
-                'Inventory Summary',
-                style: pw.TextStyle(
-                  fontSize: 18,
-                  fontWeight: pw.FontWeight.bold,
+              pw.SizedBox(height: 5),
+              pw.Center(
+                child: pw.Text(
+                  'Generated On: ${DateFormat('yyyy/MM/dd hh:mm a').format(now)}',
+                  style: const pw.TextStyle(fontSize: 10),
                 ),
-              ),
-              pw.Bullet(text: 'Total Medicines Count: $totalMedicines'),
-              pw.Bullet(
-                text:
-                    'Current Stock Valuation: ${stockValue.toStringAsFixed(2)}',
               ),
               pw.SizedBox(height: 20),
+
+              // --- Inventory Summary Table ---
               pw.Text(
-                'Financial Summary',
+                'INVENTORY SUMMARY',
                 style: pw.TextStyle(
-                  fontSize: 18,
                   fontWeight: pw.FontWeight.bold,
+                  fontSize: 12,
                 ),
               ),
-              pw.Bullet(
-                text: 'Total Purchases: ${purchases.toStringAsFixed(2)}',
+              pw.SizedBox(height: 5),
+              pw.TableHelper.fromTextArray(
+                context: context,
+                border: pw.TableBorder.all(),
+                headerStyle: pw.TextStyle(
+                  fontWeight: pw.FontWeight.bold,
+                  fontSize: 10,
+                ),
+                cellStyle: const pw.TextStyle(fontSize: 10),
+                headers: ['Description', 'Value'],
+                data: [
+                  ['Total Medicine Items', totalMedicines.toString()],
+                  [
+                    'Current Stock Valuation',
+                    'Rs. ${stockValue.toStringAsFixed(2)}',
+                  ],
+                ],
               ),
-              pw.Bullet(text: 'Total Sales: ${sales.toStringAsFixed(2)}'),
               pw.SizedBox(height: 20),
+
+              // --- Financial Summary Table ---
               pw.Text(
-                'Net Approximate Profit (Sales - Purchases): ${(sales - purchases).toStringAsFixed(2)}',
+                'FINANCIAL SUMMARY (Last 7 Days)',
                 style: pw.TextStyle(
                   fontWeight: pw.FontWeight.bold,
-                  color: PdfColors.blue,
+                  fontSize: 12,
                 ),
               ),
-              pw.Paragraph(
-                text:
-                    'Note: This represents raw cash flow difference, not actual profit as inventory valuation is excluded.',
+              pw.SizedBox(height: 5),
+              pw.TableHelper.fromTextArray(
+                context: context,
+                border: pw.TableBorder.all(),
+                headerStyle: pw.TextStyle(
+                  fontWeight: pw.FontWeight.bold,
+                  fontSize: 10,
+                ),
+                cellStyle: const pw.TextStyle(fontSize: 10),
+                headers: ['Description', 'Amount'],
+                data: [
+                  ['Total Purchases', 'Rs. ${purchases.toStringAsFixed(2)}'],
+                  ['Total Sales', 'Rs. ${sales.toStringAsFixed(2)}'],
+                  [
+                    'Net Cash Flow',
+                    'Rs. ${(sales - purchases).toStringAsFixed(2)}',
+                  ],
+                ],
+              ),
+              pw.SizedBox(height: 5),
+              pw.Text(
+                'Note: Net Cash Flow = Sales - Purchases (Excludes inventory valuation)',
+                style: const pw.TextStyle(fontSize: 8, color: PdfColors.grey),
+              ),
+
+              pw.Spacer(),
+
+              // --- Footer (Matching Bill) ---
+              pw.Row(
+                mainAxisAlignment: pw.MainAxisAlignment.end,
+                children: [
+                  pw.Column(
+                    crossAxisAlignment: pw.CrossAxisAlignment.center,
+                    children: [
+                      if (user.userName != null) ...[
+                        pw.Text(
+                          user.userName!,
+                          style: pw.TextStyle(
+                            fontSize: 10,
+                            fontWeight: pw.FontWeight.bold,
+                          ),
+                        ),
+                        pw.SizedBox(height: 2),
+                      ],
+                      pw.Container(
+                        width: 150,
+                        decoration: const pw.BoxDecoration(
+                          border: pw.Border(bottom: pw.BorderSide()),
+                        ),
+                      ),
+                      pw.SizedBox(height: 2),
+                      pw.Text(
+                        'Authorized Signature',
+                        style: const pw.TextStyle(fontSize: 8),
+                      ),
+                    ],
+                  ),
+                ],
               ),
             ],
           );
@@ -486,8 +551,10 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
       ),
     );
 
+    // This handles both print preview and save as PDF
     await Printing.layoutPdf(
       onLayout: (PdfPageFormat format) async => pdf.save(),
+      name: 'Pharmacy_Report_${DateFormat('yyyyMMdd').format(now)}.pdf',
     );
   }
 }

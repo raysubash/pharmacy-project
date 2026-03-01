@@ -1,11 +1,24 @@
+import 'package:hive/hive.dart';
+
+part 'bill_model.g.dart';
+
+@HiveType(typeId: 4)
 class BillItem {
+  @HiveField(0)
   final String medicineId;
+  @HiveField(1)
   final String medicineName;
+  @HiveField(2)
   final String batchNumber;
+  @HiveField(3)
   final DateTime manufactureDate;
+  @HiveField(4)
   final DateTime expiryDate;
+  @HiveField(5)
   final int quantity;
+  @HiveField(6)
   final double purchasePrice;
+  @HiveField(7)
   final double totalAmount;
 
   BillItem({
@@ -44,13 +57,21 @@ class BillItem {
   }
 }
 
+@HiveType(typeId: 5)
 class PurchaseBill {
+  @HiveField(0)
   final String id;
+  @HiveField(1)
   final String billNumber;
+  @HiveField(2)
   final String supplierName;
+  @HiveField(3)
   final DateTime billDate;
+  @HiveField(4)
   final List<BillItem> items;
+  @HiveField(5)
   final double totalAmount;
+  @HiveField(6)
   final DateTime entryDate;
 
   PurchaseBill({

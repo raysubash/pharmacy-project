@@ -211,6 +211,48 @@ class _ReturnScreenState extends ConsumerState<ReturnScreen> {
     );
   }
 
+  Future<void> _deleteReturn(ReturnItem item) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder:
+          (ctx) => AlertDialog(
+            title: const Text('Confirm Delete'),
+            content: Text('Delete return for ${item.medicineName}?'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: const Text('Cancel'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, true),
+                style: TextButton.styleFrom(foregroundColor: Colors.red),
+                child: const Text('Delete'),
+              ),
+            ],
+          ),
+    );
+
+    if (confirm == true) {
+      if (mounted) {
+        try {
+          // Use ref.read outside build
+          await ref.read(returnProvider.notifier).deleteReturn(item.id);
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Return deleted')),
+            );
+          }
+        } catch (e) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Error: $e')),
+            );
+          }
+        }
+      }
+    }
+  }
+
   Widget _buildReturnList(
     BuildContext context,
     List<ReturnItem> items,
@@ -234,13 +276,10 @@ class _ReturnScreenState extends ConsumerState<ReturnScreen> {
           margin: const EdgeInsets.only(bottom: 12),
           child: ListTile(
             leading: CircleAvatar(
-              backgroundColor:
-                  isReminder
-                      ? Colors.blue.withOpacity(0.1)
-                      : _getStatusColor(item.status).withOpacity(0.1),
+              backgroundColor: _getStatusColor(item.status).withOpacity(0.1),
               child: Icon(
                 isReminder ? Icons.alarm : Icons.assignment_return,
-                color: isReminder ? Colors.blue : _getStatusColor(item.status),
+                color: _getStatusColor(item.status),
               ),
             ),
             title: Text(
@@ -259,35 +298,65 @@ class _ReturnScreenState extends ConsumerState<ReturnScreen> {
                 ),
               ],
             ),
-            trailing:
-                isReminder
-                    ? IconButton(
-                      icon: const Icon(Icons.check_circle_outline),
-                      onPressed: () {
-                        // Mark as completed or convert to actual return?
-                        // For now, let's just delete or edit.
-                        // Maybe open edit screen to process it.
-                        // Or just delete.
-                      },
-                    )
-                    : Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 4,
-                      ),
-                      decoration: BoxDecoration(
-                        color: _getStatusColor(item.status).withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Text(
-                        item.status,
-                        style: TextStyle(
-                          color: _getStatusColor(item.status),
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                        ),
+            trailing: PopupMenuButton<String>(
+              onSelected: (value) {
+                if (value == 'edit') {
+                  context.push('/returns/edit', extra: item);
+                } else if (value == 'delete') {
+                  _deleteReturn(item);
+                }
+              },
+              itemBuilder: (BuildContext context) {
+                return [
+                  const PopupMenuItem<String>(
+                    value: 'edit',
+                    child: Row(
+                      children: [
+                        Icon(Icons.edit, color: Colors.blue),
+                        SizedBox(width: 8),
+                        Text('Edit'),
+                      ],
+                    ),
+                  ),
+                  const PopupMenuItem<String>(
+                    value: 'delete',
+                    child: Row(
+                      children: [
+                        Icon(Icons.delete, color: Colors.red),
+                        SizedBox(width: 8),
+                        Text('Delete'),
+                      ],
+                    ),
+                  ),
+                ];
+              },
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: _getStatusColor(item.status).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      item.status,
+                      style: TextStyle(
+                        color: _getStatusColor(item.status),
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
+                    const SizedBox(width: 4),
+                    Icon(
+                      Icons.more_vert,
+                      size: 16,
+                      color: _getStatusColor(item.status),
+                    ),
+                  ],
+                ),
+              ),
+            ),
             onTap: () {
               _showReturnDetails(item);
             },

@@ -658,48 +658,26 @@ class _CustomerBillScreenState extends ConsumerState<CustomerBillScreen> {
               pw.Spacer(),
 
               // --- Footer ---
-              pw.Text(
-                'Note: Goods once sold will not be returned.',
-                style: const pw.TextStyle(fontSize: 10),
-              ),
-              pw.SizedBox(height: 30),
+              pw.Spacer(),
+
               pw.Row(
-                mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                mainAxisAlignment: pw.MainAxisAlignment.end,
                 children: [
                   pw.Column(
+                    crossAxisAlignment: pw.CrossAxisAlignment.center,
                     children: [
-                      pw.Container(
-                        width: 100,
-                        decoration: const pw.BoxDecoration(
-                          border: pw.Border(bottom: pw.BorderSide()),
+                      if (user.userName != null) ...[
+                        pw.Text(
+                          user.userName!,
+                          style: pw.TextStyle(
+                            fontSize: 10,
+                            fontWeight: pw.FontWeight.bold,
+                          ),
                         ),
-                      ),
-                      pw.SizedBox(height: 2),
-                      pw.Text(
-                        'Checked By',
-                        style: const pw.TextStyle(fontSize: 8),
-                      ),
-                    ],
-                  ),
-                  pw.Column(
-                    children: [
+                        pw.SizedBox(height: 2),
+                      ],
                       pw.Container(
-                        width: 100,
-                        decoration: const pw.BoxDecoration(
-                          border: pw.Border(bottom: pw.BorderSide()),
-                        ),
-                      ),
-                      pw.SizedBox(height: 2),
-                      pw.Text(
-                        'Received By',
-                        style: const pw.TextStyle(fontSize: 8),
-                      ),
-                    ],
-                  ),
-                  pw.Column(
-                    children: [
-                      pw.Container(
-                        width: 100,
+                        width: 150,
                         decoration: const pw.BoxDecoration(
                           border: pw.Border(bottom: pw.BorderSide()),
                         ),
@@ -709,11 +687,6 @@ class _CustomerBillScreenState extends ConsumerState<CustomerBillScreen> {
                         'Authorized Signature',
                         style: const pw.TextStyle(fontSize: 8),
                       ),
-                      if (user.userName != null)
-                        pw.Text(
-                          user.userName!,
-                          style: const pw.TextStyle(fontSize: 8),
-                        ),
                     ],
                   ),
                 ],

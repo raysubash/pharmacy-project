@@ -1,14 +1,30 @@
+import 'package:hive/hive.dart';
+
+part 'return_model.g.dart';
+
+@HiveType(typeId: 6)
 class ReturnItem {
+  @HiveField(0)
   final String id;
+  @HiveField(1)
   final String medicineName;
+  @HiveField(2)
   final String batchNumber;
+  @HiveField(3)
   final int quantity;
+  @HiveField(4)
   final String reason;
+  @HiveField(5)
   final DateTime returnDate;
+  @HiveField(6)
   final double? refundAmount;
+  @HiveField(7)
   String status; // 'Pending', 'Approved', 'Rejected'
+  @HiveField(8)
   final String? originalBillNo;
+  @HiveField(9)
   final DateTime? expiryDate;
+  @HiveField(10)
   final String? supplierName;
 
   ReturnItem({

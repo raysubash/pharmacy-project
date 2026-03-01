@@ -1,12 +1,26 @@
+import 'package:hive/hive.dart';
+
+part 'sale_model.g.dart';
+
+@HiveType(typeId: 2)
 class SaleItem {
+  @HiveField(0)
   final String medicineId;
+  @HiveField(1)
   final String medicineName;
+  @HiveField(2)
   final int quantity;
+  @HiveField(3)
   final double price; // Selling Price or CC/RATE
+  @HiveField(4)
   final double discount;
+  @HiveField(5)
   final double total;
+  @HiveField(6)
   final String? batchNumber;
+  @HiveField(7)
   final DateTime? expiryDate;
+  @HiveField(8)
   final double? mrp;
 
   SaleItem({
@@ -53,19 +67,33 @@ class SaleItem {
   }
 }
 
+@HiveType(typeId: 3)
 class Sale {
+  @HiveField(0)
   final String? id;
+  @HiveField(1)
   final String invoiceNumber;
+  @HiveField(2)
   final String customerName;
+  @HiveField(3)
   final String? customerPhone;
+  @HiveField(4)
   final String? customerAddress;
+  @HiveField(5)
   final String? customerPan;
+  @HiveField(6)
   final String payMode;
+  @HiveField(7)
   final List<SaleItem> items;
+  @HiveField(8)
   final double subTotal;
+  @HiveField(9)
   final double discount;
+  @HiveField(10)
   final double tax;
+  @HiveField(11)
   final double grandTotal;
+  @HiveField(12)
   final DateTime date;
 
   Sale({

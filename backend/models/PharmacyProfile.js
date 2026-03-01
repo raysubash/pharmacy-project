@@ -26,7 +26,11 @@ const pharmacyProfileSchema = new mongoose.Schema(
     problemReport: {
       description: { type: String }, // User's problem description
       reportedAt: { type: Date },
-      status: { type: String, enum: ["pending", "resolved"], default: "pending" }
+      status: {
+        type: String,
+        enum: ["pending", "resolved"],
+        default: "pending",
+      },
     },
   },
   { timestamps: true },

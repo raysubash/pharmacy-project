@@ -50,9 +50,11 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
 
       // Use lower quality again if still too big
       if (sizeInMB > 0.1) {
-         // > 100KB, try to compress via flutter_image_compress (if available) or just rely on picker
-         // Since we can't easily add new packages without restart, we'll just log it.
-         log("Warning: Image is larger than 100KB. It might be rejected by server if limit is low.");
+        // > 100KB, try to compress via flutter_image_compress (if available) or just rely on picker
+        // Since we can't easily add new packages without restart, we'll just log it.
+        log(
+          "Warning: Image is larger than 100KB. It might be rejected by server if limit is low.",
+        );
       }
 
       String base64Image = base64Encode(imageBytes);
@@ -172,8 +174,7 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
       if (e.toString().contains("SocketException")) {
         message = "No Internet Connection. Please check your network.";
       } else if (e.toString().contains("DioException")) {
-        message =
-            "Server Error: Failed to initiate payment.";
+        message = "Server Error: Failed to initiate payment.";
       }
       if (mounted) {
         ScaffoldMessenger.of(
@@ -320,49 +321,50 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
 
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text("Report Issue"),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              "Describe the problem you are facing (e.g. Upload failed, Payment sent but not verified).",
-              style: TextStyle(fontSize: 14, color: Colors.grey),
+      builder:
+          (ctx) => AlertDialog(
+            title: const Text("Report Issue"),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  "Describe the problem you are facing (e.g. Upload failed, Payment sent but not verified).",
+                  style: TextStyle(fontSize: 14, color: Colors.grey),
+                ),
+                const SizedBox(height: 10),
+                TextField(
+                  controller: problemController,
+                  maxLines: 4,
+                  decoration: const InputDecoration(
+                    border: OutlineInputBorder(),
+                    hintText: "Enter details here...",
+                  ),
+                ),
+                const SizedBox(height: 10),
+                const Text(
+                  "Note: Submitting this will grant you TEMPORARY access to the dashboard for 3 days while we investigate.",
+                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                ),
+              ],
             ),
-            const SizedBox(height: 10),
-            TextField(
-              controller: problemController,
-              maxLines: 4,
-              decoration: const InputDecoration(
-                border: OutlineInputBorder(),
-                hintText: "Enter details here...",
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text("Cancel"),
               ),
-            ),
-            const SizedBox(height: 10),
-            const Text(
-              "Note: Submitting this will grant you TEMPORARY access to the dashboard for 3 days while we investigate.",
-              style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text("Cancel"),
+              ElevatedButton(
+                onPressed: () {
+                  final problem = problemController.text.trim();
+                  if (problem.isNotEmpty) {
+                    Navigator.pop(ctx);
+                    _submitProblemReport(problem);
+                  }
+                },
+                child: const Text("Submit Report"),
+              ),
+            ],
           ),
-          ElevatedButton(
-            onPressed: () {
-              final problem = problemController.text.trim();
-              if (problem.isNotEmpty) {
-                Navigator.pop(ctx);
-                _submitProblemReport(problem);
-              }
-            },
-            child: const Text("Submit Report"),
-          ),
-        ],
-      ),
     );
   }
 
@@ -400,9 +402,9 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
     } catch (e) {
       if (mounted) {
         Navigator.pop(context); // Close loading
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Failed to submit report: $e")),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text("Failed to submit report: $e")));
       }
     }
   }
@@ -475,17 +477,20 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
                         ),
                       const SizedBox(height: 10),
                       TextButton.icon(
-                        icon: const Icon(Icons.report_problem, color: Colors.orange),
+                        icon: const Icon(
+                          Icons.report_problem,
+                          color: Colors.orange,
+                        ),
                         label: const Text(
                           "Facing issues? Report Problem",
                           style: TextStyle(color: Colors.orange),
                         ),
                         onPressed: () {
-                           Navigator.of(context).pop(); // Close current dialog
-                           // Use Future.delayed to ensure dialog is fully closed before opening new one
-                           Future.delayed(Duration.zero, () {
-                             if (mounted) _showReportProblemDialog(context);
-                           });
+                          Navigator.of(context).pop(); // Close current dialog
+                          // Use Future.delayed to ensure dialog is fully closed before opening new one
+                          Future.delayed(Duration.zero, () {
+                            if (mounted) _showReportProblemDialog(context);
+                          });
                         },
                       ),
                     ],
@@ -508,8 +513,8 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
                           final ImagePicker picker = ImagePicker();
                           final XFile? image = await picker.pickImage(
                             source: ImageSource.gallery,
-                            imageQuality: 10,   // Extreme compression (10%)
-                            maxWidth: 400,      // Max width 400px (very small)
+                            imageQuality: 10, // Extreme compression (10%)
+                            maxWidth: 400, // Max width 400px (very small)
                           );
                           if (image != null) {
                             setState(() {

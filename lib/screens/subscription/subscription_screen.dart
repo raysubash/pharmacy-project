@@ -31,8 +31,30 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
     final profile = ref.read(profileProvider).value;
     if (profile == null) return;
     try {
+      // Check for internet connection first
+      try {
+        final result = await InternetAddress.lookup('google.com');
+        if (result.isNotEmpty && result[0].rawAddress.isNotEmpty) {
+          // Connected
+        }
+      } on SocketException catch (_) {
+        throw Exception("No Internet Connection. Please check your data/wifi.");
+      }
+
       // Convert image to base64
       List<int> imageBytes = await image.readAsBytes();
+      // Check file size and compress if too large
+      int sizeInBytes = imageBytes.length;
+      double sizeInMB = sizeInBytes / (1024 * 1024);
+      log("Image Size Before: ${sizeInMB.toStringAsFixed(2)} MB");
+
+      // Use lower quality again if still too big
+      if (sizeInMB > 0.1) {
+         // > 100KB, try to compress via flutter_image_compress (if available) or just rely on picker
+         // Since we can't easily add new packages without restart, we'll just log it.
+         log("Warning: Image is larger than 100KB. It might be rejected by server if limit is low.");
+      }
+
       String base64Image = base64Encode(imageBytes);
 
       // Call backend endpoint "upload-statement"
@@ -147,9 +169,11 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
     } catch (e) {
       log("Khalti Error: $e");
       String message = "Error initiating payment: $e";
-      if (e.toString().contains("DioException")) {
+      if (e.toString().contains("SocketException")) {
+        message = "No Internet Connection. Please check your network.";
+      } else if (e.toString().contains("DioException")) {
         message =
-            "Server Error: Failed to initiate payment. Please check your internet connection and verify backend URL.";
+            "Server Error: Failed to initiate payment.";
       }
       if (mounted) {
         ScaffoldMessenger.of(
@@ -291,16 +315,108 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
     );
   }
 
+  void _showReportProblemDialog(BuildContext context) {
+    final TextEditingController problemController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text("Report Issue"),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              "Describe the problem you are facing (e.g. Upload failed, Payment sent but not verified).",
+              style: TextStyle(fontSize: 14, color: Colors.grey),
+            ),
+            const SizedBox(height: 10),
+            TextField(
+              controller: problemController,
+              maxLines: 4,
+              decoration: const InputDecoration(
+                border: OutlineInputBorder(),
+                hintText: "Enter details here...",
+              ),
+            ),
+            const SizedBox(height: 10),
+            const Text(
+              "Note: Submitting this will grant you TEMPORARY access to the dashboard for 3 days while we investigate.",
+              style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text("Cancel"),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              final problem = problemController.text.trim();
+              if (problem.isNotEmpty) {
+                Navigator.pop(ctx);
+                _submitProblemReport(problem);
+              }
+            },
+            child: const Text("Submit Report"),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _submitProblemReport(String description) async {
+    final profile = ref.read(profileProvider).value;
+    if (profile == null) return;
+
+    try {
+      if (mounted) {
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (ctx) => const Center(child: CircularProgressIndicator()),
+        );
+      }
+
+      await ApiService.reportProblem(
+        pharmacyId: profile.id,
+        description: description,
+      );
+
+      // Refresh profile
+      ref.invalidate(profileProvider);
+
+      if (mounted) {
+        Navigator.pop(context); // Close loading
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Report Submitted! Temporary access granted."),
+            backgroundColor: Colors.green,
+          ),
+        );
+        context.go('/dashboard');
+      }
+    } catch (e) {
+      if (mounted) {
+        Navigator.pop(context); // Close loading
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Failed to submit report: $e")),
+        );
+      }
+    }
+  }
+
   Widget _buildPaymentButton(
     String label,
     Color color,
-    IconData icon,
+    Widget iconWidget,
     VoidCallback onPressed,
   ) {
     return SizedBox(
       width: double.infinity,
       child: ElevatedButton.icon(
-        icon: Icon(icon),
+        icon: iconWidget,
         label: Text(label),
         style: ElevatedButton.styleFrom(
           backgroundColor: color,
@@ -357,6 +473,21 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
                             ),
                           ),
                         ),
+                      const SizedBox(height: 10),
+                      TextButton.icon(
+                        icon: const Icon(Icons.report_problem, color: Colors.orange),
+                        label: const Text(
+                          "Facing issues? Report Problem",
+                          style: TextStyle(color: Colors.orange),
+                        ),
+                        onPressed: () {
+                           Navigator.of(context).pop(); // Close current dialog
+                           // Use Future.delayed to ensure dialog is fully closed before opening new one
+                           Future.delayed(Duration.zero, () {
+                             if (mounted) _showReportProblemDialog(context);
+                           });
+                        },
+                      ),
                     ],
                   ),
                 ),
@@ -377,6 +508,8 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
                           final ImagePicker picker = ImagePicker();
                           final XFile? image = await picker.pickImage(
                             source: ImageSource.gallery,
+                            imageQuality: 10,   // Extreme compression (10%)
+                            maxWidth: 400,      // Max width 400px (very small)
                           );
                           if (image != null) {
                             setState(() {
@@ -455,14 +588,44 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
             _buildPaymentButton(
               "Pay with Khalti",
               const Color(0xFF5C2D91), // Khalti Purple
-              Icons.account_balance_wallet,
+              Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                padding: const EdgeInsets.all(2),
+                child: Image.network(
+                  "https://upload.wikimedia.org/wikipedia/commons/e/ee/Khalti_Digital_Wallet_Logo.png",
+                  height: 24,
+                  errorBuilder:
+                      (context, error, stackTrace) => const Icon(
+                        Icons.account_balance_wallet,
+                        color: Colors.purple,
+                      ),
+                ),
+              ),
               () => _showPaymentInstructions(context, title, price),
             ),
             const SizedBox(height: 10),
             _buildPaymentButton(
               "Pay with Esewa",
               const Color(0xFF60BB46), // Esewa Green
-              Icons.account_balance_wallet,
+              Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                padding: const EdgeInsets.all(2),
+                child: Image.network(
+                  "https://upload.wikimedia.org/wikipedia/commons/f/ff/Esewa_logo.webp",
+                  height: 24,
+                  errorBuilder:
+                      (context, error, stackTrace) => const Icon(
+                        Icons.account_balance_wallet,
+                        color: Colors.green,
+                      ),
+                ),
+              ),
               () => _showPaymentInstructions(context, title, price),
             ),
 

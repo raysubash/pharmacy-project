@@ -195,4 +195,52 @@ router.get("/status/:pharmacyId", async (req, res) => {
   }
 });
 
+// Report Problem with Subscription/Payment
+router.post("/report-problem", async (req, res) => {
+  try {
+    const { pharmacyId, problemDescription } = req.body;
+
+    if (!pharmacyId || !problemDescription) {
+      return res.status(400).json({ error: "Missing required fields" });
+    }
+
+    const problemReport = {
+      description: problemDescription,
+      reportedAt: new Date(),
+      status: "pending",
+    };
+
+    // Temporarily activate subscription for 3 days to allow access while admin reviews
+    const tempExpiry = new Date();
+    tempExpiry.setDate(tempExpiry.getDate() + 3);
+
+    const updatedProfile = await PharmacyProfile.findByIdAndUpdate(
+      pharmacyId,
+      {
+        $set: {
+          problemReport: problemReport,
+          // Grant temporary access
+          "subscription.isActive": true,
+          "subscription.plan": "Provisional (Problem Reported)",
+          "subscription.startDate": new Date(),
+          "subscription.expiryDate": tempExpiry,
+        },
+      },
+      { returnDocument: "after" },
+    );
+
+    if (!updatedProfile) {
+      return res.status(404).json({ error: "Pharmacy Profile not found" });
+    }
+
+    res.json({
+      message: "Problem reported. Temporary access granted for 3 days.",
+      profile: updatedProfile,
+    });
+  } catch (err) {
+    console.error("Report Problem Error:", err);
+    res.status(500).json({ error: "Server Error" });
+  }
+});
+
 module.exports = router;

@@ -9,9 +9,13 @@ import '../models/sale_model.dart';
 class ApiService {
   // Use 10.0.2.2 for Android Emulator, localhost for iOS Simulator/Web/Desktop
   // static const String baseUrl = 'http://localhost:5000/api';
-  // Use the live server URL from Render
+  
+  // Use local backend for development (Replace localhost with your IP if testing on real phone)
+  // static const String baseUrl = 'http://localhost:5000/api'; 
+  
+  // Use the live server URL from Render (Uncomment when deploying)
   static const String baseUrl =
-      'https://pharmacy-project-wkdo.onrender.com/api';
+     'https://pharmacy-project-wkdo.onrender.com/api';
 
   static final Dio _dio = Dio(BaseOptions(baseUrl: baseUrl))
     ..interceptors.add(
@@ -256,6 +260,21 @@ class ApiService {
       );
     } catch (e) {
       print('Error uploading statement: $e');
+      throw e;
+    }
+  }
+
+  static Future<void> reportProblem({
+    required String pharmacyId,
+    required String description,
+  }) async {
+    try {
+      await _dio.post(
+        '/subscription/report-problem',
+        data: {'pharmacyId': pharmacyId, 'problemDescription': description},
+      );
+    } catch (e) {
+      print('Error reporting problem: $e');
       throw e;
     }
   }

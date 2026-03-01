@@ -23,6 +23,11 @@ const pharmacyProfileSchema = new mongoose.Schema(
       paymentReference: { type: String },
       paymentProofImage: { type: String }, // URL or Base64 of the payment statement image
     },
+    problemReport: {
+      description: { type: String }, // User's problem description
+      reportedAt: { type: Date },
+      status: { type: String, enum: ["pending", "resolved"], default: "pending" }
+    },
   },
   { timestamps: true },
 );

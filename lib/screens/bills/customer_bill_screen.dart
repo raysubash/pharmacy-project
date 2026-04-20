@@ -7,7 +7,7 @@ import 'package:printing/printing.dart';
 import 'package:number_to_words_english/number_to_words_english.dart';
 import '../../models/medicine_model.dart';
 import '../../models/sale_model.dart';
-import '../../models/pharmacy_profile_model.dart';
+//import '../../models/pharmacy_profile_model.dart';
 import '../../providers/medicine_provider.dart';
 import '../../providers/sale_provider.dart';
 import '../../providers/profile_provider.dart';
@@ -242,41 +242,41 @@ class _CustomerBillScreenState extends ConsumerState<CustomerBillScreen> {
     }
   }
 
-  void _updateQuantity(int index, int newQty) {
-    if (newQty <= 0) {
-      _removeFromCart(index);
-      return;
-    }
-
-    final item = _cartItems[index];
-    final allMedicines = ref.read(medicineProvider).value ?? [];
-
-    Medicine? medicine;
-    try {
-      medicine = allMedicines.firstWhere((m) => m.id == item.medicineId);
-    } catch (_) {}
-
-    if (medicine != null && newQty > medicine.currentStock) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Not enough stock')));
-      return;
-    }
-
-    setState(() {
-      _cartItems[index] = SaleItem(
-        medicineId: item.medicineId,
-        medicineName: item.medicineName,
-        quantity: newQty,
-        price: item.price,
-        discount: item.discount, // Use existing item discount
-        total: (newQty * item.price) * (1 - (item.discount / 100)),
-        batchNumber: item.batchNumber,
-        expiryDate: item.expiryDate,
-        mrp: item.mrp,
-      );
-    });
-  }
+//  void _updateQuantity(int index, int newQty) {
+//    if (newQty <= 0) {
+//      _removeFromCart(index);
+//      return;
+//    }
+//
+//    final item = _cartItems[index];
+//    final allMedicines = ref.read(medicineProvider).value ?? [];
+//
+//    Medicine? medicine;
+//    try {
+//      medicine = allMedicines.firstWhere((m) => m.id == item.medicineId);
+//    } catch (_) {}
+//
+//    if (medicine != null && newQty > medicine.currentStock) {
+//      ScaffoldMessenger.of(
+//        context,
+//      ).showSnackBar(const SnackBar(content: Text('Not enough stock')));
+//      return;
+//    }
+//
+//    setState(() {
+//      _cartItems[index] = SaleItem(
+//        medicineId: item.medicineId,
+//        medicineName: item.medicineName,
+//        quantity: newQty,
+//        price: item.price,
+//        discount: item.discount, // Use existing item discount
+//        total: (newQty * item.price) * (1 - (item.discount / 100)),
+//        batchNumber: item.batchNumber,
+//        expiryDate: item.expiryDate,
+//        mrp: item.mrp,
+//      );
+//    });
+//  }
 
   void _removeFromCart(int index) {
     setState(() {

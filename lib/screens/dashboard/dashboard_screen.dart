@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:fl_chart/fl_chart.dart';
+import '../../models/medicine_model.dart';
 import '../../providers/medicine_provider.dart';
 import '../../providers/sale_provider.dart';
 import '../../utils/theme.dart';
@@ -43,6 +44,32 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                         (m) =>
                             m.expiryDate != null &&
                             m.expiryDate!.isBefore(DateTime.now()),
+                      )
+                      .toList();
+
+              // Expiring Soon: 3 months from now
+              final threeMonthsFromNow = DateTime.now().add(Duration(days: 90));
+              final expiringsoon =
+                  medicines
+                      .where(
+                        (m) =>
+                            m.expiryDate != null &&
+                            m.expiryDate!.isAfter(DateTime.now()) &&
+                            m.expiryDate!.isBefore(threeMonthsFromNow),
+                      )
+                      .toList();
+
+              // Over Stock: unused for 2 months (createdDate + 60 days)
+              final twoMonthsAgo = DateTime.now().subtract(Duration(days: 60));
+              final overStock =
+                  medicines
+                      .where(
+                        (m) =>
+                            m.createdDate.isBefore(twoMonthsAgo) &&
+                            m.currentStock == medicines
+                                .where((med) => med.id == m.id)
+                                .first
+                                .currentStock,
                       )
                       .toList();
 
@@ -107,7 +134,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                           ),
                           const SizedBox(height: 12),
                           _buildQuickActions(context),
-                          if (lowStock.isNotEmpty || expired.isNotEmpty) ...[
+                          if (lowStock.isNotEmpty ||
+                              expired.isNotEmpty ||
+                              expiringsoon.isNotEmpty ||
+                              overStock.isNotEmpty) ...[
                             const SizedBox(height: 24),
                             Text(
                               "Attention Needed",
@@ -121,8 +151,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                             const SizedBox(height: 12),
                             _buildAlerts(
                               context,
-                              lowStock.length,
-                              expired.length,
+                              lowStock,
+                              expired,
+                              expiringsoon,
+                              overStock,
                             ),
                           ],
                           const SizedBox(height: 80), // Bottom padding
@@ -167,7 +199,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   width: 200,
                   height: 200,
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.1),
+                    color: Colors.white.withValues(alpha: 0.1),
                     shape: BoxShape.circle,
                   ),
                 ),
@@ -179,7 +211,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   width: 140,
                   height: 140,
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.1),
+                    color: Colors.white.withValues(alpha: 0.1),
                     shape: BoxShape.circle,
                   ),
                 ),
@@ -193,7 +225,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                     Text(
                       DateFormat('EEEE, d MMM').format(DateTime.now()),
                       style: TextStyle(
-                        color: Colors.white.withOpacity(0.9),
+                        color: Colors.white.withValues(alpha: 0.9),
                         fontSize: 14,
                         fontWeight: FontWeight.w500,
                       ),
@@ -221,7 +253,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                           borderRadius: BorderRadius.circular(30),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withOpacity(0.1),
+                              color: Colors.black.withValues(alpha: 0.1),
                               blurRadius: 10,
                               offset: const Offset(0, 5),
                             ),
@@ -264,7 +296,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
+            color: Colors.grey.withValues(alpha: 0.1),
             spreadRadius: 2,
             blurRadius: 10,
             offset: const Offset(0, 4),
@@ -286,13 +318,13 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                     LineChartBarData(
                       spots: spots,
                       isCurved: true,
-                      color: AppTheme.primaryGreen.withOpacity(0.3),
+                      color: AppTheme.primaryGreen.withValues(alpha: 0.3),
                       barWidth: 3,
                       isStrokeCapRound: true,
                       dotData: const FlDotData(show: false),
                       belowBarData: BarAreaData(
                         show: true,
-                        color: AppTheme.primaryGreen.withOpacity(0.1),
+                        color: AppTheme.primaryGreen.withValues(alpha: 0.1),
                       ),
                     ),
                   ],
@@ -335,7 +367,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                         vertical: 4,
                       ),
                       decoration: BoxDecoration(
-                        color: AppTheme.primaryGreen.withOpacity(0.1),
+                        color: AppTheme.primaryGreen.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Row(
@@ -363,7 +395,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: AppTheme.primaryGreen.withOpacity(0.1),
+                    color: AppTheme.primaryGreen.withValues(alpha: 0.1),
                     shape: BoxShape.circle,
                   ),
                   child: const Text(
@@ -435,7 +467,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withOpacity(0.05),
+            color: Colors.grey.withValues(alpha: 0.05),
             spreadRadius: 1,
             blurRadius: 8,
             offset: const Offset(0, 2),
@@ -531,7 +563,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             width: 60,
             height: 60,
             decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
+              color: color.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(18),
             ),
             child: Icon(icon, color: color, size: 28),
@@ -552,14 +584,17 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
   Widget _buildAlerts(
     BuildContext context,
-    int lowStockCount,
-    int expiredCount,
+    List<Medicine> lowStockMedicines,
+    List<Medicine> expiredMedicines,
+    List<Medicine> expiringSoonMedicines,
+    List<Medicine> overStockMedicines,
   ) {
     List<Widget> alerts = [];
-    if (lowStockCount > 0) {
+
+    if (lowStockMedicines.isNotEmpty) {
       alerts.add(
         _buildAlertTile(
-          "$lowStockCount items are low in stock",
+          "${lowStockMedicines.length} items are low in stock",
           Icons.warning,
           Colors.orange,
           () {
@@ -567,12 +602,44 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           },
         ),
       );
+
+      for (final medicine in lowStockMedicines.take(3)) {
+        alerts.add(const SizedBox(height: 8));
+        alerts.add(
+          _buildAlertTile(
+            '${medicine.name} (${medicine.currentStock} left)',
+            Icons.medication,
+            Colors.orange,
+            () {
+              context.go('/medicines?filter=lowStock');
+            },
+          ),
+        );
+      }
+
+      if (lowStockMedicines.length > 3) {
+        alerts.add(const SizedBox(height: 8));
+        alerts.add(
+          Align(
+            alignment: Alignment.centerLeft,
+            child: Text(
+              '+${lowStockMedicines.length - 3} more low stock medicines',
+              style: TextStyle(
+                color: Colors.orange.shade800,
+                fontWeight: FontWeight.w600,
+                fontSize: 13,
+              ),
+            ),
+          ),
+        );
+      }
     }
-    if (expiredCount > 0) {
+
+    if (expiredMedicines.isNotEmpty) {
       alerts.add(const SizedBox(height: 8));
       alerts.add(
         _buildAlertTile(
-          "$expiredCount items have expired",
+          "${expiredMedicines.length} items have expired",
           Icons.error,
           Colors.red,
           () {
@@ -581,6 +648,35 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         ),
       );
     }
+
+    if (expiringSoonMedicines.isNotEmpty) {
+      alerts.add(const SizedBox(height: 8));
+      alerts.add(
+        _buildAlertTile(
+          "${expiringSoonMedicines.length} items expiring in 3 months",
+          Icons.schedule,
+          Colors.amber,
+          () {
+            context.go('/medicines?filter=expiring');
+          },
+        ),
+      );
+    }
+
+    if (overStockMedicines.isNotEmpty) {
+      alerts.add(const SizedBox(height: 8));
+      alerts.add(
+        _buildAlertTile(
+          "${overStockMedicines.length} items overstock (unused 2+ months)",
+          Icons.inventory_2,
+          Colors.purple,
+          () {
+            context.go('/medicines?filter=overStock');
+          },
+        ),
+      );
+    }
+
     return Column(children: alerts);
   }
 
@@ -595,9 +691,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: BoxDecoration(
-          color: color.withOpacity(0.1),
+          color: color.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: color.withOpacity(0.3)),
+          border: Border.all(color: color.withValues(alpha: 0.3)),
         ),
         child: Row(
           children: [
@@ -607,7 +703,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               child: Text(
                 message,
                 style: TextStyle(
-                  color: color.withOpacity(0.9),
+                  color: color.withValues(alpha: 0.9),
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -615,7 +711,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             Icon(
               Icons.arrow_forward_ios,
               size: 14,
-              color: color.withOpacity(0.7),
+              color: color.withValues(alpha: 0.7),
             ),
           ],
         ),

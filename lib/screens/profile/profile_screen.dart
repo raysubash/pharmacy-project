@@ -147,7 +147,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                 CircleAvatar(
                                   radius: 40,
                                   backgroundColor: AppTheme.primaryGreen
-                                      .withOpacity(0.1),
+                                      .withValues(alpha: 0.1),
                                   child: const Icon(
                                     Icons.store,
                                     size: 40,

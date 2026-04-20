@@ -36,7 +36,7 @@ class _AddReturnScreenState extends ConsumerState<AddReturnScreen> {
   DateTime _selectedDate = DateTime.now();
 
   bool _isReminder = false;
-  Medicine? _selectedMedicine;
+  // Medicine? _selectedMedicine; // Unused - kept for future reference
 
   @override
   void initState() {
@@ -49,11 +49,11 @@ class _AddReturnScreenState extends ConsumerState<AddReturnScreen> {
       _selectedDate = item.returnDate;
       _status = item.status;
       _isReminder = item.status == 'Reminder';
-      
+
       if (_reasons.contains(item.reason)) {
         _selectedReason = item.reason;
       } else {
-        _selectedReason = 'Other'; 
+        _selectedReason = 'Other';
         // Note: If 'Other' was used and custom text was saved, we might lose it if we don't handle it.
         // For now assuming reason is one of the list.
       }
@@ -113,19 +113,21 @@ class _AddReturnScreenState extends ConsumerState<AddReturnScreen> {
       if (widget.itemToEdit == null) {
         await ref.read(returnProvider.notifier).addReturn(returnItem);
         if (mounted) {
-           ScaffoldMessenger.of(context).showSnackBar(
+          ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Return added successfully')),
           );
         }
       } else {
-        await ref.read(returnProvider.notifier).updateReturn(returnItem.id, returnItem);
+        await ref
+            .read(returnProvider.notifier)
+            .updateReturn(returnItem.id, returnItem);
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Return updated successfully')),
           );
         }
       }
-      
+
       if (mounted) {
         context.pop();
       }
@@ -141,7 +143,13 @@ class _AddReturnScreenState extends ConsumerState<AddReturnScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(widget.itemToEdit == null ? 'Add Return Request' : 'Edit Return Request')),
+      appBar: AppBar(
+        title: Text(
+          widget.itemToEdit == null
+              ? 'Add Return Request'
+              : 'Edit Return Request',
+        ),
+      ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Form(
@@ -190,7 +198,7 @@ class _AddReturnScreenState extends ConsumerState<AddReturnScreen> {
                         },
                         onSelected: (Medicine selection) {
                           setState(() {
-                            _selectedMedicine = selection;
+                            // _selectedMedicine = selection; // Unused
                             _medicineController.text = selection.name;
                             _batchController.text = selection.batchNumber ?? '';
                             // You could also set expiry, etc. if your return model supports it

@@ -43,7 +43,7 @@ class HomeShell extends StatelessWidget {
             label: 'Reports',
           ),
         ],
-        indicatorColor: AppTheme.primaryGreen.withOpacity(0.2),
+        indicatorColor: AppTheme.primaryGreen.withValues(alpha: 0.2),
       ),
     );
   }

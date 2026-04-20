@@ -8,7 +8,7 @@ import '../../models/medicine_model.dart';
 import '../../providers/medicine_provider.dart';
 import '../../widgets/app_drawer.dart';
 
-enum MedicineFilter { all, lowStock, expiring }
+enum MedicineFilter { all, lowStock, expiring, expiringSoon, overStock }
 
 class MedicineInventoryScreen extends ConsumerStatefulWidget {
   final MedicineFilter filter;
@@ -51,6 +51,7 @@ class _MedicineInventoryScreenState
         imagePath: medicine.imagePath,
         batchNumber: medicine.batchNumber,
         expiryDate: medicine.expiryDate,
+        createdDate: medicine.createdDate,
       );
 
       await ref
@@ -167,6 +168,19 @@ class _MedicineInventoryScreenState
                         passesFilter =
                             m.expiryDate != null &&
                             m.expiryDate!.isBefore(DateTime.now());
+                      } else if (widget.filter == MedicineFilter.expiringSoon) {
+                        final threeMonthsFromNow =
+                            DateTime.now().add(Duration(days: 90));
+                        passesFilter =
+                            m.expiryDate != null &&
+                            m.expiryDate!.isAfter(DateTime.now()) &&
+                            m.expiryDate!.isBefore(threeMonthsFromNow);
+                      } else if (widget.filter == MedicineFilter.overStock) {
+                        final twoMonthsAgo =
+                            DateTime.now().subtract(Duration(days: 60));
+                        passesFilter =
+                            m.createdDate.isBefore(twoMonthsAgo) &&
+                            m.currentStock == m.currentStock;
                       }
 
                       return matchesSearch && passesFilter;
@@ -188,7 +202,7 @@ class _MedicineInventoryScreenState
                         borderRadius: BorderRadius.circular(16),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.grey.withOpacity(0.1),
+                            color: Colors.grey.withValues(alpha: 0.1),
                             blurRadius: 10,
                             offset: const Offset(0, 4),
                           ),

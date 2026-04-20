@@ -83,7 +83,7 @@ class _ReturnScreenState extends ConsumerState<ReturnScreen> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               decoration: BoxDecoration(
-                color: _getStatusColor(value).withOpacity(0.1),
+                color: _getStatusColor(value).withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Text(
@@ -107,9 +107,9 @@ class _ReturnScreenState extends ConsumerState<ReturnScreen> {
     // We use .when but we can also use .valueOrNull if we want to show stale data while loading
     // But since the user complained about loading stick, let's keep it clean
     final returnsAsync = ref.watch(returnProvider);
-    final previousReturns =
-        returnsAsync
-            .valueOrNull; // Use this for "loading" state display if exists
+////    final previousReturns =
+////        returnsAsync
+////            .valueOrNull; // Use this for "loading" state display if exists
 
     return DefaultTabController(
       length: 2,
@@ -276,7 +276,7 @@ class _ReturnScreenState extends ConsumerState<ReturnScreen> {
           margin: const EdgeInsets.only(bottom: 12),
           child: ListTile(
             leading: CircleAvatar(
-              backgroundColor: _getStatusColor(item.status).withOpacity(0.1),
+              backgroundColor: _getStatusColor(item.status).withValues(alpha: 0.1),
               child: Icon(
                 isReminder ? Icons.alarm : Icons.assignment_return,
                 color: _getStatusColor(item.status),
@@ -333,7 +333,7 @@ class _ReturnScreenState extends ConsumerState<ReturnScreen> {
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: _getStatusColor(item.status).withOpacity(0.1),
+                  color: _getStatusColor(item.status).withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Row(

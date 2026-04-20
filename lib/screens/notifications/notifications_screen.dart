@@ -57,7 +57,7 @@ class NotificationsScreen extends ConsumerWidget {
                     margin: const EdgeInsets.only(bottom: 12),
                     child: ListTile(
                       leading: CircleAvatar(
-                        backgroundColor: notif.color.withOpacity(0.1),
+                        backgroundColor: notif.color.withValues(alpha: 0.1),
                         child: Icon(notif.icon, color: notif.color),
                       ),
                       title: Text(

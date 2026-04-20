@@ -1,3 +1,5 @@
+// ignore_for_file: avoid_print
+
 import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/medicine_model.dart';
@@ -51,7 +53,7 @@ class ApiService {
       return Medicine.fromJson(response.data);
     } catch (e) {
       print('Error adding medicine: $e');
-      throw e;
+      rethrow;
     }
   }
 
@@ -64,7 +66,7 @@ class ApiService {
       return Medicine.fromJson(response.data);
     } catch (e) {
       print('Error updating medicine: $e');
-      throw e;
+      rethrow;
     }
   }
 
@@ -73,7 +75,7 @@ class ApiService {
       await _dio.delete('/medicines/$id');
     } catch (e) {
       print('Error deleting medicine: $e');
-      throw e;
+      rethrow;
     }
   }
 
@@ -96,7 +98,7 @@ class ApiService {
       return PurchaseBill.fromJson(response.data);
     } catch (e) {
       print('Error adding bill: $e');
-      throw e;
+      rethrow;
     }
   }
 
@@ -105,7 +107,7 @@ class ApiService {
       await _dio.delete('/bills/$id');
     } catch (e) {
       print('Error deleting bill: $e');
-      throw e;
+      rethrow;
     }
   }
 
@@ -118,7 +120,7 @@ class ApiService {
           .toList();
     } catch (e) {
       print('Error fetching returns: $e');
-      throw e; // Rethrow to let UI handle error state
+      rethrow; // Rethrow to let UI handle error state
     }
   }
 
@@ -128,7 +130,7 @@ class ApiService {
       return ReturnItem.fromJson(response.data);
     } catch (e) {
       print('Error adding return: $e');
-      throw e;
+      rethrow;
     }
   }
 
@@ -137,7 +139,7 @@ class ApiService {
       await _dio.delete('/returns/$id');
     } catch (e) {
       print('Error deleting return: $e');
-      throw e;
+      rethrow;
     }
   }
 
@@ -158,7 +160,7 @@ class ApiService {
       return PharmacyProfile.fromJson(response.data);
     } catch (e) {
       print('Error saving profile: $e');
-      throw e;
+      rethrow;
     }
   }
 
@@ -181,7 +183,7 @@ class ApiService {
       return Sale.fromJson(response.data);
     } catch (e) {
       print('Error adding sale: $e');
-      throw e;
+      rethrow;
     }
   }
 
@@ -216,7 +218,7 @@ class ApiService {
       }
     } catch (e) {
       print('Error initiating Khalti payment: $e');
-      throw e;
+      rethrow;
     }
   }
 
@@ -238,7 +240,7 @@ class ApiService {
       );
     } catch (e) {
       print('Error updating subscription: $e');
-      throw e;
+      rethrow;
     }
   }
 
@@ -260,7 +262,7 @@ class ApiService {
       );
     } catch (e) {
       print('Error uploading statement: $e');
-      throw e;
+      rethrow;
     }
   }
 
@@ -275,7 +277,7 @@ class ApiService {
       );
     } catch (e) {
       print('Error reporting problem: $e');
-      throw e;
+      rethrow;
     }
   }
 
@@ -286,7 +288,7 @@ class ApiService {
       return response.data;
     } catch (e) {
       print('Error fetching users: $e');
-      throw e;
+      rethrow;
     }
   }
 
@@ -295,7 +297,7 @@ class ApiService {
       await _dio.delete('/admin/users/$id');
     } catch (e) {
       print('Error deleting user: $e');
-      throw e;
+      rethrow;
     }
   }
 }

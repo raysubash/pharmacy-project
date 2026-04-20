@@ -22,8 +22,18 @@ import '../screens/bills/customer_bill_screen.dart';
 import '../screens/subscription/subscription_screen.dart';
 import '../screens/admin/admin_dashboard_screen.dart';
 
+MedicineFilter _medicineFilterFromQuery(String? filter) {
+  switch (filter) {
+    case 'lowStock':
+      return MedicineFilter.lowStock;
+    case 'expiring':
+      return MedicineFilter.expiring;
+    default:
+      return MedicineFilter.all;
+  }
+}
+
 final _rootNavigatorKey = GlobalKey<NavigatorState>();
-final _shellNavigatorKey = GlobalKey<NavigatorState>();
 
 final routerProvider = Provider<GoRouter>((ref) {
   return GoRouter(
@@ -79,7 +89,12 @@ final routerProvider = Provider<GoRouter>((ref) {
             routes: [
               GoRoute(
                 path: '/medicines',
-                builder: (context, state) => const MedicineInventoryScreen(),
+                builder:
+                    (context, state) => MedicineInventoryScreen(
+                      filter: _medicineFilterFromQuery(
+                        state.uri.queryParameters['filter'],
+                      ),
+                    ),
                 routes: [
                   GoRoute(
                     path: 'add',
@@ -125,9 +140,10 @@ final routerProvider = Provider<GoRouter>((ref) {
                   ),
                   GoRoute(
                     path: 'edit',
-                    builder: (context, state) => AddReturnScreen(
-                      itemToEdit: state.extra as ReturnItem?,
-                    ),
+                    builder:
+                        (context, state) => AddReturnScreen(
+                          itemToEdit: state.extra as ReturnItem?,
+                        ),
                   ),
                 ],
               ),

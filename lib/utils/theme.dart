@@ -17,7 +17,6 @@ class AppTheme {
         secondary: alertOrange,
         error: dangerRed,
         surface: surfaceColor,
-        background: backgroundWhite,
       ),
       scaffoldBackgroundColor: backgroundWhite,
       textTheme: GoogleFonts.latoTextTheme(),

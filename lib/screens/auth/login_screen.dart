@@ -2,7 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/bill_provider.dart';
+import '../../providers/medicine_provider.dart';
 import '../../providers/profile_provider.dart';
+import '../../providers/return_provider.dart';
+import '../../providers/sale_provider.dart';
 import '../../utils/theme.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
@@ -41,6 +45,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             ),
           );
         } else if (authState.token != null) {
+          // Reset provider cache so previous account's data is not reused.
+          ref.invalidate(medicineProvider);
+          ref.invalidate(saleProvider);
+          ref.invalidate(billProvider);
+          ref.invalidate(returnProvider);
+          ref.invalidate(profileProvider);
+
           // Check role first
           if (authState.role == 'admin') {
             context.go('/admin-dashboard');

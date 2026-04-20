@@ -48,6 +48,8 @@ class Medicine {
   final String? batchNumber;
   @HiveField(14)
   final DateTime? expiryDate;
+  @HiveField(15)
+  final DateTime createdDate;
 
   Medicine({
     required this.id,
@@ -65,7 +67,8 @@ class Medicine {
     this.imagePath,
     this.batchNumber,
     this.expiryDate,
-  });
+    DateTime? createdDate,
+  }) : createdDate = createdDate ?? DateTime.now();
 
   factory Medicine.fromJson(Map<String, dynamic> json) {
     return Medicine(
@@ -87,6 +90,10 @@ class Medicine {
           json['expiryDate'] != null
               ? DateTime.parse(json['expiryDate'])
               : null,
+      createdDate:
+          json['createdDate'] != null
+              ? DateTime.parse(json['createdDate'])
+              : null,
     );
   }
 
@@ -107,6 +114,7 @@ class Medicine {
       'imagePath': imagePath,
       'batchNumber': batchNumber,
       'expiryDate': expiryDate?.toIso8601String(),
+      'createdDate': createdDate.toIso8601String(),
     };
   }
 

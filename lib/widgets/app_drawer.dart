@@ -1,8 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../providers/auth_provider.dart';
+import '../providers/bill_provider.dart';
+import '../providers/medicine_provider.dart';
 import '../utils/theme.dart';
 import '../providers/profile_provider.dart';
+import '../providers/return_provider.dart';
+import '../providers/sale_provider.dart';
 
 class AppDrawer extends ConsumerWidget {
   const AppDrawer({super.key});
@@ -128,7 +133,15 @@ class AppDrawer extends ConsumerWidget {
           ListTile(
             leading: const Icon(Icons.logout),
             title: const Text('Logout'),
-            onTap: () {
+            onTap: () async {
+              await ref.read(authProvider.notifier).logout();
+              ref.invalidate(medicineProvider);
+              ref.invalidate(saleProvider);
+              ref.invalidate(billProvider);
+              ref.invalidate(returnProvider);
+              ref.invalidate(profileProvider);
+
+              if (!context.mounted) return;
               context.go('/login');
             },
           ),

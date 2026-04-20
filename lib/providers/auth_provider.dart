@@ -2,11 +2,13 @@ import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import '../services/local_storage_service.dart';
 
 // Create a simple Auth State class
 class AuthState {
   final bool isLoading;
   final String? token;
+  final String? userId;
   final String? userName;
   final String? role; // Added role
   final String? error;
@@ -14,6 +16,7 @@ class AuthState {
   AuthState({
     this.isLoading = false,
     this.token,
+    this.userId,
     this.userName,
     this.role,
     this.error,
@@ -25,6 +28,7 @@ class AuthState {
   AuthState copyWith({
     bool? isLoading,
     String? token,
+    String? userId,
     String? userName,
     String? role,
     String? error,
@@ -32,6 +36,7 @@ class AuthState {
     return AuthState(
       isLoading: isLoading ?? this.isLoading,
       token: token ?? this.token,
+      userId: userId ?? this.userId,
       userName: userName ?? this.userName,
       role: role ?? this.role,
       error: error,
@@ -66,18 +71,26 @@ class AuthNotifier extends StateNotifier<AuthState> {
           final prefs = await SharedPreferences.getInstance();
           await prefs.setString('token', token);
 
+          String? userId;
           String? userName;
           String? role;
           if (data['user'] != null) {
+            userId = data['user']['id'] ?? data['user']['_id'];
             userName = data['user']['name'];
             role = data['user']['role'];
+            await prefs.setString('userId', userId ?? '');
             await prefs.setString('userName', userName ?? '');
             await prefs.setString('role', role ?? 'pharmacist');
           }
 
+          await LocalStorageService.setActiveUserKey(
+            userId ?? email.trim().toLowerCase(),
+          );
+
           state = AuthState(
             isLoading: false,
             token: token,
+            userId: userId,
             userName: userName,
             role: role,
           );
@@ -101,12 +114,15 @@ class AuthNotifier extends StateNotifier<AuthState> {
   Future<void> loginAsGuest() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('token', 'guest_token');
+    await prefs.setString('userId', 'guest_user');
     await prefs.setString('userName', 'Pharmacist (Offline)');
     await prefs.setString('role', 'pharmacist');
+    await LocalStorageService.setActiveUserKey('guest_user');
 
     state = AuthState(
       isLoading: false,
       token: 'guest_token',
+      userId: 'guest_user',
       userName: 'Pharmacist (Offline)',
       role: 'pharmacist',
     );
@@ -131,13 +147,28 @@ class AuthNotifier extends StateNotifier<AuthState> {
           final prefs = await SharedPreferences.getInstance();
           await prefs.setString('token', data['token']);
 
+          String? userId;
           String? userName;
+          String? role;
           if (data['user'] != null && data['user']['name'] != null) {
+            userId = data['user']['id'] ?? data['user']['_id'];
             userName = data['user']['name'];
+            role = data['user']['role'] ?? 'pharmacist';
+            await prefs.setString('userId', userId ?? '');
             await prefs.setString('userName', userName!);
+            await prefs.setString('role', role ?? 'pharmacist');
           }
 
-          state = state.copyWith(token: data['token'], userName: userName);
+          await LocalStorageService.setActiveUserKey(
+            userId ?? email.trim().toLowerCase(),
+          );
+
+          state = state.copyWith(
+            token: data['token'],
+            userId: userId,
+            userName: userName,
+            role: role,
+          );
         }
       } else {
         state = state.copyWith(
@@ -153,17 +184,29 @@ class AuthNotifier extends StateNotifier<AuthState> {
   Future<void> logout() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('token');
+    await prefs.remove('userId');
     await prefs.remove('userName');
+    await prefs.remove('role');
+    await LocalStorageService.setActiveUserKey(null);
     state = AuthState();
   }
 
   Future<void> checkAuth() async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('token');
+    final userId = prefs.getString('userId');
     final userName = prefs.getString('userName');
     final role = prefs.getString('role');
     if (token != null) {
-      state = state.copyWith(token: token, userName: userName, role: role);
+      await LocalStorageService.setActiveUserKey(
+        userId ?? userName ?? 'guest_user',
+      );
+      state = state.copyWith(
+        token: token,
+        userId: userId,
+        userName: userName,
+        role: role,
+      );
     }
   }
 }

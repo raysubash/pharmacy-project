@@ -488,9 +488,9 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
                         onPressed: () {
                           Navigator.of(context).pop(); // Close current dialog
                           // Use Future.delayed to ensure dialog is fully closed before opening new one
-                          Future.delayed(Duration.zero, () {
-                            if (mounted) _showReportProblemDialog(context);
-                          });
+                            WidgetsBinding.instance.addPostFrameCallback((_) {
+                              if (mounted) _showReportProblemDialog(context);
+                            });
                         },
                       ),
                     ],
@@ -559,7 +559,7 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: color.withOpacity(0.3), width: 1),
+          border: Border.all(color: color.withValues(alpha: 0.3), width: 1),
         ),
         child: Column(
           children: [

@@ -402,7 +402,7 @@ class _AddPurchaseBillScreenState extends ConsumerState<AddPurchaseBillScreen> {
               ),
               const SizedBox(height: 16),
               Card(
-                color: AppTheme.primaryGreen.withOpacity(0.1),
+                color: AppTheme.primaryGreen.withValues(alpha: 0.1),
                 child: Padding(
                   padding: const EdgeInsets.all(16.0),
                   child: Row(

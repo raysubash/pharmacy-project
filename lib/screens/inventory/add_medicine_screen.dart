@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
+import 'package:uuid/uuid.dart';
 import '../../utils/theme.dart';
 import '../../models/medicine_model.dart';
 import '../../providers/medicine_provider.dart';
@@ -24,6 +25,7 @@ class _AddMedicineScreenState extends ConsumerState<AddMedicineScreen> {
   final _brandNameController = TextEditingController();
   final _genericNameController = TextEditingController();
   final _minStockController = TextEditingController(); // Min Stock
+  final _maxStockController = TextEditingController(); // Max Stock
   final _originalmrpController = TextEditingController(); // MRP
   final _sellingPriceController = TextEditingController();
   final _packagingController = TextEditingController();
@@ -58,6 +60,7 @@ class _AddMedicineScreenState extends ConsumerState<AddMedicineScreen> {
       _brandNameController.text = m.brandName ?? '';
       _genericNameController.text = m.genericName ?? '';
       _minStockController.text = m.minStock.toString();
+      _maxStockController.text = m.maxStock?.toString() ?? '';
       _originalmrpController.text = m.mrp?.toString() ?? '';
       _sellingPriceController.text = m.sellingPrice.toString();
       _packagingController.text = m.packaging ?? '';
@@ -92,6 +95,7 @@ class _AddMedicineScreenState extends ConsumerState<AddMedicineScreen> {
     _brandNameController.dispose();
     _genericNameController.dispose();
     _minStockController.dispose();
+    _maxStockController.dispose();
     _originalmrpController.dispose();
     _sellingPriceController.dispose();
     _packagingController.dispose();
@@ -171,14 +175,20 @@ class _AddMedicineScreenState extends ConsumerState<AddMedicineScreen> {
   Future<void> _saveMedicine() async {
     if (_formKey.currentState!.validate()) {
       try {
+        final existingId = widget.medicineToEdit?.id;
+        final validId = (existingId != null && existingId.isNotEmpty)
+            ? existingId
+            : const Uuid().v4();
+
         final newMedicine = Medicine(
-          id: widget.medicineToEdit?.id ?? '', // Backend will generate ID if empty
+          id: validId,
           name: _nameController.text.trim(),
           brandName: _brandNameController.text.trim(),
           genericName: _genericNameController.text.trim(),
           category: _selectedCategory ?? 'Other',
           unit: _selectedUnit ?? MeasureUnit.tablet,
           minStock: int.tryParse(_minStockController.text) ?? 10,
+          maxStock: int.tryParse(_maxStockController.text),
           sellingPrice: double.tryParse(_sellingPriceController.text) ?? 0.0,
           mrp: double.tryParse(_originalmrpController.text),
           packaging: _packagingController.text.trim(),
@@ -438,7 +448,7 @@ class _AddMedicineScreenState extends ConsumerState<AddMedicineScreen> {
                   Expanded(
                     child: TextFormField(
                       controller: _originalmrpController,
-                      decoration: const InputDecoration(labelText: 'MRP (₹)'),
+                      decoration: const InputDecoration(labelText: 'MRP (Rs)'),
                       keyboardType: TextInputType.number,
                     ),
                   ),
@@ -468,12 +478,22 @@ class _AddMedicineScreenState extends ConsumerState<AddMedicineScreen> {
                       keyboardType: TextInputType.number,
                     ),
                   ),
-                  const SizedBox(width: 16),
+                  const SizedBox(width: 12),
                   Expanded(
                     child: TextFormField(
                       controller: _minStockController,
                       decoration: const InputDecoration(
-                        labelText: 'Low Stock Alert',
+                        labelText: 'Min Stock (Low)',
+                      ),
+                      keyboardType: TextInputType.number,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: TextFormField(
+                      controller: _maxStockController,
+                      decoration: const InputDecoration(
+                        labelText: 'Max Stock (Over)',
                       ),
                       keyboardType: TextInputType.number,
                     ),

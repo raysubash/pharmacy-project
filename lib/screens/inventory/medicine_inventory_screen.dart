@@ -7,6 +7,8 @@ import '../../utils/theme.dart';
 import '../../models/medicine_model.dart';
 import '../../providers/medicine_provider.dart';
 import '../../widgets/app_drawer.dart';
+import '../../widgets/profile_avatar_icon.dart';
+import '../../widgets/medicine_details_dialog.dart';
 
 enum MedicineFilter { all, lowStock, expiring, expiringSoon, overStock }
 
@@ -25,6 +27,23 @@ class _MedicineInventoryScreenState
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
   String _searchQuery = '';
+  late MedicineFilter _activeFilter;
+
+  @override
+  void initState() {
+    super.initState();
+    _activeFilter = widget.filter;
+  }
+
+  @override
+  void didUpdateWidget(MedicineInventoryScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.filter != widget.filter) {
+      setState(() {
+        _activeFilter = widget.filter;
+      });
+    }
+  }
 
   @override
   void dispose() {
@@ -83,6 +102,142 @@ class _MedicineInventoryScreenState
     );
   }
 
+  Widget _buildFilterChipsBar(List<Medicine> allMedicines) {
+    final lowStockCount = allMedicines
+        .where((m) => m.activeStatuses.contains(MedicineStatus.lowStock))
+        .length;
+    final expiringSoonCount = allMedicines
+        .where((m) => m.activeStatuses.contains(MedicineStatus.expiringSoon))
+        .length;
+    final expiredCount = allMedicines
+        .where((m) => m.activeStatuses.contains(MedicineStatus.expired))
+        .length;
+    final overStockCount = allMedicines
+        .where((m) => m.activeStatuses.contains(MedicineStatus.overStock))
+        .length;
+
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
+      child: Row(
+        children: [
+          _buildChip(
+            'All (${allMedicines.length})',
+            MedicineFilter.all,
+            AppTheme.primaryGreen,
+          ),
+          const SizedBox(width: 8),
+          _buildChip(
+            'Low Stock ($lowStockCount)',
+            MedicineFilter.lowStock,
+            Colors.orange[700]!,
+          ),
+          const SizedBox(width: 8),
+          _buildChip(
+            'Expiring Soon ($expiringSoonCount)',
+            MedicineFilter.expiringSoon,
+            Colors.amber[800]!,
+          ),
+          const SizedBox(width: 8),
+          _buildChip(
+            'Expired ($expiredCount)',
+            MedicineFilter.expiring,
+            Colors.red[700]!,
+          ),
+          const SizedBox(width: 8),
+          _buildChip(
+            'Over Stock ($overStockCount)',
+            MedicineFilter.overStock,
+            Colors.purple[700]!,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildChip(String label, MedicineFilter filterType, Color activeColor) {
+    final isSelected = _activeFilter == filterType;
+    return ChoiceChip(
+      label: Text(
+        label,
+        style: TextStyle(
+          fontSize: 12,
+          fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+          color: isSelected ? Colors.white : Colors.black87,
+        ),
+      ),
+      selected: isSelected,
+      selectedColor: activeColor,
+      backgroundColor: Colors.grey[100],
+      elevation: isSelected ? 2 : 0,
+      pressElevation: 1,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+        side: BorderSide(
+          color: isSelected ? activeColor : Colors.grey.shade300,
+        ),
+      ),
+      onSelected: (selected) {
+        if (selected) {
+          setState(() {
+            _activeFilter = filterType;
+          });
+        }
+      },
+    );
+  }
+
+  Widget _buildStatusBadges(Medicine medicine) {
+    final active = medicine.activeStatuses;
+
+    return Wrap(
+      spacing: 6,
+      runSpacing: 4,
+      children: active.map((status) {
+        String badgeText = status.label;
+        if (status == MedicineStatus.expired) {
+          final days = medicine.daysUntilExpiry;
+          if (days != null) {
+            badgeText = 'Expired (${days.abs()}d ago)';
+          }
+        } else if (status == MedicineStatus.expiringSoon) {
+          final days = medicine.daysUntilExpiry;
+          if (days != null) {
+            badgeText = 'Expires in ${days}d';
+          }
+        } else if (status == MedicineStatus.lowStock) {
+          badgeText = 'Low Stock (${medicine.currentStock}/${medicine.minStock})';
+        } else if (status == MedicineStatus.overStock) {
+          badgeText = 'Over Stock (${medicine.currentStock}/${medicine.maxStock ?? 0})';
+        }
+
+        return Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+          decoration: BoxDecoration(
+            color: status.backgroundColor,
+            borderRadius: BorderRadius.circular(6),
+            border: Border.all(color: status.color.withValues(alpha: 0.3)),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(status.icon, size: 12, color: status.color),
+              const SizedBox(width: 4),
+              Text(
+                badgeText,
+                style: TextStyle(
+                  color: status.color,
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+        );
+      }).toList(),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final medicinesAsyncValue = ref.watch(medicineProvider);
@@ -99,107 +254,137 @@ class _MedicineInventoryScreenState
         elevation: 0,
         centerTitle: true,
         iconTheme: const IconThemeData(color: Colors.white),
-      ),
-      body: Column(
-        children: [
-          // Search Bar
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: TextField(
-              controller: _searchController,
-              decoration: InputDecoration(
-                hintText: 'Search medicine, batch, or company',
-                hintStyle: TextStyle(color: Colors.grey[400]),
-                prefixIcon: Icon(Icons.search, color: Colors.grey[400]),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide.none,
-                ),
-                filled: true,
-                fillColor: const Color(0xFFF5F7FA),
-                contentPadding: const EdgeInsets.symmetric(vertical: 16),
-              ),
-              onChanged: (value) {
-                setState(() {
-                  _searchQuery = value.toLowerCase();
-                });
-              },
-            ),
+        actions: const [
+          ProfileAvatarIcon(
+            radius: 20,
+            iconColor: Colors.white,
+            backgroundColor: Color(0x33FFFFFF),
           ),
+        ],
+      ),
+      body: medicinesAsyncValue.when(
+        data: (allMedicines) {
+          final medicines = allMedicines.where((m) {
+            final name = m.name.toLowerCase();
+            final brand = (m.brandName ?? '').toLowerCase();
+            final batch = (m.batchNumber ?? '').toLowerCase();
 
-          Expanded(
-            child: medicinesAsyncValue.when(
-              data: (allMedicines) {
-                if (allMedicines.isEmpty) {
-                  return Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.medication_outlined,
-                          size: 64,
-                          color: Colors.grey[300],
-                        ),
-                        const SizedBox(height: 16),
-                        const Text(
-                          'No medicines added yet.',
-                          style: TextStyle(color: Colors.grey),
-                        ),
-                      ],
+            final matchesSearch =
+                name.contains(_searchQuery) ||
+                brand.contains(_searchQuery) ||
+                batch.contains(_searchQuery);
+
+            bool passesFilter = true;
+            if (_activeFilter == MedicineFilter.lowStock) {
+              passesFilter = m.activeStatuses.contains(MedicineStatus.lowStock);
+            } else if (_activeFilter == MedicineFilter.expiring) {
+              passesFilter = m.activeStatuses.contains(MedicineStatus.expired);
+            } else if (_activeFilter == MedicineFilter.expiringSoon) {
+              passesFilter = m.activeStatuses.contains(MedicineStatus.expiringSoon);
+            } else if (_activeFilter == MedicineFilter.overStock) {
+              passesFilter = m.activeStatuses.contains(MedicineStatus.overStock);
+            }
+
+            return matchesSearch && passesFilter;
+          }).toList();
+
+          return Column(
+            children: [
+              // Search Bar
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+                child: TextField(
+                  controller: _searchController,
+                  decoration: InputDecoration(
+                    hintText: 'Search medicine, batch, or company',
+                    hintStyle: TextStyle(color: Colors.grey[400]),
+                    prefixIcon: Icon(Icons.search, color: Colors.grey[400]),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide.none,
                     ),
-                  );
-                }
+                    filled: true,
+                    fillColor: const Color(0xFFF5F7FA),
+                    contentPadding: const EdgeInsets.symmetric(vertical: 14),
+                  ),
+                  onChanged: (value) {
+                    setState(() {
+                      _searchQuery = value.toLowerCase();
+                    });
+                  },
+                ),
+              ),
 
-                final medicines =
-                    allMedicines.where((m) {
-                      final name = m.name.toLowerCase();
-                      final brand = (m.brandName ?? '').toLowerCase();
-                      final batch = (m.batchNumber ?? '').toLowerCase();
+              // Filter Chips Bar
+              _buildFilterChipsBar(allMedicines),
+              const SizedBox(height: 8),
 
-                      final matchesSearch =
-                          name.contains(_searchQuery) ||
-                          brand.contains(_searchQuery) ||
-                          batch.contains(_searchQuery);
-
-                      bool passesFilter = true;
-                      if (widget.filter == MedicineFilter.lowStock) {
-                        passesFilter = m.currentStock <= m.minStock;
-                      } else if (widget.filter == MedicineFilter.expiring) {
-                        passesFilter =
-                            m.expiryDate != null &&
-                            m.expiryDate!.isBefore(DateTime.now());
-                      } else if (widget.filter == MedicineFilter.expiringSoon) {
-                        final threeMonthsFromNow =
-                            DateTime.now().add(Duration(days: 90));
-                        passesFilter =
-                            m.expiryDate != null &&
-                            m.expiryDate!.isAfter(DateTime.now()) &&
-                            m.expiryDate!.isBefore(threeMonthsFromNow);
-                      } else if (widget.filter == MedicineFilter.overStock) {
-                        final twoMonthsAgo =
-                            DateTime.now().subtract(Duration(days: 60));
-                        passesFilter =
-                            m.createdDate.isBefore(twoMonthsAgo) &&
-                            m.currentStock == m.currentStock;
-                      }
-
-                      return matchesSearch && passesFilter;
-                    }).toList();
-
-                if (medicines.isEmpty) {
-                  return const Center(child: Text('No medicines found.'));
-                }
-
-                return ListView.builder(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  itemCount: medicines.length,
-                  itemBuilder: (context, index) {
-                    final medicine = medicines[index];
-                    return Container(
-                      margin: const EdgeInsets.only(bottom: 16),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(16),
+              Expanded(
+                child: allMedicines.isEmpty
+                    ? Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.medication_outlined,
+                              size: 64,
+                              color: Colors.grey[300],
+                            ),
+                            const SizedBox(height: 16),
+                            const Text(
+                              'No medicines added yet.',
+                              style: TextStyle(color: Colors.grey),
+                            ),
+                          ],
+                        ),
+                      )
+                    : medicines.isEmpty
+                        ? Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.inventory_outlined,
+                                  size: 48,
+                                  color: Colors.grey[400],
+                                ),
+                                const SizedBox(height: 12),
+                                Text(
+                                  _activeFilter == MedicineFilter.lowStock
+                                      ? 'No low stock medicines found.'
+                                      : 'No medicines match the selected filter.',
+                                  style: const TextStyle(
+                                    color: Colors.grey,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                                if (_activeFilter != MedicineFilter.all) ...[
+                                  const SizedBox(height: 12),
+                                  ElevatedButton.icon(
+                                    onPressed: () => setState(
+                                      () => _activeFilter = MedicineFilter.all,
+                                    ),
+                                    icon: const Icon(Icons.clear_all, size: 18),
+                                    label: const Text('Show All Medicines'),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: AppTheme.primaryGreen,
+                                      foregroundColor: Colors.white,
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
+                          )
+                        : ListView.builder(
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            itemCount: medicines.length,
+                            itemBuilder: (context, index) {
+                              final medicine = medicines[index];
+                              return Container(
+                                margin: const EdgeInsets.only(bottom: 16),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(16),
                         boxShadow: [
                           BoxShadow(
                             color: Colors.grey.withValues(alpha: 0.1),
@@ -208,9 +393,12 @@ class _MedicineInventoryScreenState
                           ),
                         ],
                       ),
-                      child: Padding(
-                        padding: const EdgeInsets.all(12.0),
-                        child: Column(
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(16),
+                        onTap: () => showMedicineDetailsModal(context, medicine),
+                        child: Padding(
+                          padding: const EdgeInsets.all(12.0),
+                          child: Column(
                           children: [
                             Row(
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -279,61 +467,38 @@ class _MedicineInventoryScreenState
                                       Row(
                                         mainAxisAlignment:
                                             MainAxisAlignment.spaceBetween,
+                                        crossAxisAlignment: CrossAxisAlignment.start,
                                         children: [
                                           Expanded(
-                                            child: Text(
-                                              medicine.name,
-                                              style: const TextStyle(
-                                                fontSize: 16,
-                                                fontWeight: FontWeight.bold,
-                                                color: Color(0xFF2D3436),
-                                              ),
-                                              overflow: TextOverflow.ellipsis,
+                                            child: Column(
+                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                              children: [
+                                                Text(
+                                                  medicine.name,
+                                                  style: const TextStyle(
+                                                    fontSize: 16,
+                                                    fontWeight: FontWeight.bold,
+                                                    color: Color(0xFF2D3436),
+                                                  ),
+                                                  overflow: TextOverflow.ellipsis,
+                                                ),
+                                                if (medicine.genericName?.isNotEmpty ?? false) ...[
+                                                  const SizedBox(height: 2),
+                                                  Text(
+                                                    medicine.genericName!,
+                                                    style: TextStyle(
+                                                      fontSize: 12,
+                                                      color: Colors.grey[600],
+                                                    ),
+                                                  ),
+                                                ],
+                                              ],
                                             ),
                                           ),
-                                          // Expiry Badge removed? Or kept?
-                                          // User didn't explicitly ask to remove the expiry badge from item, just "expiring soon... navbar".
-                                          // "navbar" implies filters.
-                                          // I will keep item badge as it's useful context.
-                                          if (medicine.expiryDate != null &&
-                                              medicine.expiryDate!
-                                                      .difference(
-                                                        DateTime.now(),
-                                                      )
-                                                      .inDays <
-                                                  30)
-                                            Container(
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                    horizontal: 6,
-                                                    vertical: 2,
-                                                  ),
-                                              decoration: BoxDecoration(
-                                                color: Colors.red[50],
-                                                borderRadius:
-                                                    BorderRadius.circular(4),
-                                              ),
-                                              child: const Text(
-                                                'Expiring',
-                                                style: TextStyle(
-                                                  color: Colors.red,
-                                                  fontSize: 10,
-                                                  fontWeight: FontWeight.bold,
-                                                ),
-                                              ),
-                                            ),
+                                          const SizedBox(width: 8),
+                                          _buildStatusBadges(medicine),
                                         ],
                                       ),
-                                      const SizedBox(height: 4),
-                                      if (medicine.genericName?.isNotEmpty ??
-                                          false)
-                                        Text(
-                                          medicine.genericName!,
-                                          style: TextStyle(
-                                            fontSize: 12,
-                                            color: Colors.grey[500],
-                                          ),
-                                        ),
 
                                       const SizedBox(height: 8),
                                       _buildInfoRow(
@@ -342,7 +507,7 @@ class _MedicineInventoryScreenState
                                       ),
                                       _buildInfoRow(
                                         'MRP',
-                                        '₹${medicine.mrp ?? 0.0}/-',
+                                        'Rs ${medicine.mrp ?? 0.0}/-',
                                       ),
                                       _buildInfoRow(
                                         'Company',
@@ -408,17 +573,19 @@ class _MedicineInventoryScreenState
                           ],
                         ),
                       ),
-                    );
+                    ),
+                  );
                   },
-                );
-              },
-              loading: () => const Center(child: CircularProgressIndicator()),
-              error: (err, stack) => Center(child: Text('Error: $err')),
-            ),
-          ),
-        ],
+                ),
+              ),
+            ],
+          );
+        },
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (err, stack) => Center(child: Text('Error: $err')),
       ),
       floatingActionButton: FloatingActionButton(
+        heroTag: 'medicine_inventory_fab',
         onPressed: () {
           context.go('/medicines/add');
         },

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import '../../models/medicine_model.dart';
 import '../../providers/medicine_provider.dart';
+import '../../widgets/medicine_details_dialog.dart';
 
 class GlobalSearchScreen extends ConsumerStatefulWidget {
   const GlobalSearchScreen({super.key});
@@ -47,118 +47,10 @@ class _GlobalSearchScreenState extends ConsumerState<GlobalSearchScreen> {
     });
   }
 
-  Widget _buildDetailRow(
-    String label,
-    String? value, {
-    bool isStock = false,
-    int? minStock,
-    bool isPrice = false,
-  }) {
-    if (value == null || value.isEmpty) return const SizedBox();
-    Color? valueColor;
-    if (isStock && minStock != null) {
-      final stock = int.tryParse(value) ?? 0;
-      valueColor = stock <= minStock ? Colors.red : Colors.green;
-    }
-    if (isPrice) {
-      valueColor = Colors.blue[800];
-    }
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4.0),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 120,
-            child: Text(
-              '$label:',
-              style: const TextStyle(
-                fontWeight: FontWeight.bold,
-                color: Colors.grey,
-              ),
-            ),
-          ),
-          Expanded(
-            child: Text(
-              value,
-              style: TextStyle(
-                fontWeight: FontWeight.w500,
-                fontSize: 16,
-                color: valueColor,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+
 
   void _showMedicineDetails(Medicine medicine) {
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: Text(
-            medicine.name,
-            style: const TextStyle(fontWeight: FontWeight.bold),
-          ),
-          content: SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                _buildDetailRow('Generic Name', medicine.genericName),
-                _buildDetailRow('Batch Number', medicine.batchNumber),
-                _buildDetailRow('Brand Name', medicine.brandName),
-                _buildDetailRow('Category', medicine.category),
-                const Divider(),
-                _buildDetailRow('Packaging', medicine.packaging),
-                _buildDetailRow('Storage Location', medicine.storageLocation),
-                _buildDetailRow(
-                  'Unit',
-                  medicine.unit.toString().split('.').last,
-                ),
-                const Divider(),
-                _buildDetailRow(
-                  'Current Stock',
-                  '${medicine.currentStock}',
-                  isStock: true,
-                  minStock: medicine.minStock,
-                ),
-                _buildDetailRow(
-                  'Expiry Date',
-                  medicine.expiryDate?.toString().substring(0, 10),
-                ),
-                const Divider(),
-                if (medicine.mrp != null)
-                  _buildDetailRow(
-                    'MRP',
-                    'Rs. ${medicine.mrp!.toStringAsFixed(2)}',
-                  ),
-                _buildDetailRow(
-                  'Selling Price',
-                  'Rs. ${medicine.sellingPrice.toStringAsFixed(2)}',
-                  isPrice: true,
-                ),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Close'),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.pop(context);
-                context.go('/medicines/edit', extra: medicine);
-              },
-              child: const Text('Edit'),
-            ),
-          ],
-        );
-      },
-    );
+    showMedicineDetailsModal(context, medicine);
   }
 
   @override
@@ -210,7 +102,7 @@ class _GlobalSearchScreenState extends ConsumerState<GlobalSearchScreen> {
                             fontWeight: FontWeight.bold,
                           ),
                         ),
-                        Text('₹${medicine.sellingPrice}'),
+                        Text('Rs ${medicine.sellingPrice}'),
                       ],
                     ),
                     onTap: () {

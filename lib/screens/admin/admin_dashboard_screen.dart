@@ -312,17 +312,13 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
                 ],
               ),
       floatingActionButton: FloatingActionButton(
+        heroTag: 'admin_dashboard_fab',
         onPressed: () {
-          // Navigate to add user screen or show dialog
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text(
-                "Add User feature can be implemented here (e.g. signup flow)",
-              ),
-            ),
-          );
+          setState(() => isLoading = true);
+          _fetchUsers();
         },
-        child: const Icon(Icons.add),
+        tooltip: 'Refresh Users',
+        child: const Icon(Icons.refresh),
       ),
     );
   }

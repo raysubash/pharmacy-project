@@ -11,8 +11,7 @@ const seedAdmin = async () => {
 
     if (admin) {
       console.log("Admin user already exists");
-      return;
-    }
+    } else {
 
     admin = new User({
       name: "Super Admin",
@@ -26,8 +25,37 @@ const seedAdmin = async () => {
 
     await admin.save();
     console.log("Admin user seeded successfully");
+    }
   } catch (err) {
     console.error("Error seeding admin:", err.message);
+  }
+
+  // Seed demo pharmacist
+  try {
+    const pharmaEmail = "demo@pharmacy.com";
+    const pharmaPassword = "demo123";
+
+    let pharma = await User.findOne({ email: pharmaEmail });
+
+    if (pharma) {
+      console.log("Demo pharmacist already exists");
+      return;
+    }
+
+    pharma = new User({
+      name: "Demo Pharmacist",
+      email: pharmaEmail,
+      password: pharmaPassword,
+      role: "pharmacist",
+    });
+
+    const salt = await bcrypt.genSalt(10);
+    pharma.password = await bcrypt.hash(pharmaPassword, salt);
+
+    await pharma.save();
+    console.log("Demo pharmacist seeded successfully");
+  } catch (err) {
+    console.error("Error seeding pharmacist:", err.message);
   }
 };
 

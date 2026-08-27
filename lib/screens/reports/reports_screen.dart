@@ -12,6 +12,7 @@ import '../../providers/profile_provider.dart';
 import '../../providers/auth_provider.dart'; // Import auth provider
 import '../../utils/theme.dart';
 import '../../widgets/app_drawer.dart';
+import '../../widgets/profile_avatar_icon.dart';
 
 class ReportsScreen extends ConsumerStatefulWidget {
   const ReportsScreen({super.key});
@@ -40,6 +41,13 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
         centerTitle: true,
+        actions: const [
+          ProfileAvatarIcon(
+            radius: 20,
+            iconColor: Colors.white,
+            backgroundColor: Color(0x33FFFFFF),
+          ),
+        ],
       ),
       body: medicinesAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
@@ -266,19 +274,19 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                                 children: [
                                   _buildStatCard(
                                     "Stock Value",
-                                    "₹${totalStockValue.toStringAsFixed(0)}",
+                                    "Rs ${totalStockValue.toStringAsFixed(0)}",
                                     Icons.inventory_2,
                                     Colors.blue,
                                   ),
                                   _buildStatCard(
                                     "Total Sales",
-                                    "₹${totalSales.toStringAsFixed(0)}",
+                                    "Rs ${totalSales.toStringAsFixed(0)}",
                                     Icons.trending_up,
                                     Colors.green,
                                   ),
                                   _buildStatCard(
                                     "Purchases",
-                                    "₹${totalPurchases.toStringAsFixed(0)}",
+                                    "Rs ${totalPurchases.toStringAsFixed(0)}",
                                     Icons.shopping_bag,
                                     Colors.orange,
                                   ),

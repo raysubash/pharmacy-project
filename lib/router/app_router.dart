@@ -1,17 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../models/return_model.dart';
-import '../models/bill_model.dart';
 import '../models/medicine_model.dart';
 import '../screens/home_shell.dart';
 import '../screens/dashboard/dashboard_screen.dart';
 import '../screens/inventory/medicine_inventory_screen.dart';
 import '../screens/inventory/add_medicine_screen.dart';
-import '../screens/bills/purchase_bill_screen.dart';
-import '../screens/bills/add_bill_screen.dart';
-import '../screens/returns/return_screen.dart';
-import '../screens/returns/add_return_screen.dart';
+import '../screens/bills/sales_history_screen.dart';
+import '../screens/suppliers/supplier_screen.dart';
 import '../screens/reports/reports_screen.dart';
 import '../screens/auth/login_screen.dart';
 import '../screens/auth/signup_screen.dart';
@@ -115,16 +111,7 @@ final routerProvider = Provider<GoRouter>((ref) {
             routes: [
               GoRoute(
                 path: '/bills',
-                builder: (context, state) => const PurchaseBillScreen(),
-                routes: [
-                  GoRoute(
-                    path: 'add',
-                    builder:
-                        (context, state) => AddPurchaseBillScreen(
-                          billToEdit: state.extra as PurchaseBill?,
-                        ),
-                  ),
-                ],
+                builder: (context, state) => const SalesHistoryScreen(),
               ),
             ],
           ),
@@ -132,20 +119,11 @@ final routerProvider = Provider<GoRouter>((ref) {
             routes: [
               GoRoute(
                 path: '/returns',
-                builder: (context, state) => const ReturnScreen(),
-                routes: [
-                  GoRoute(
-                    path: 'add',
-                    builder: (context, state) => const AddReturnScreen(),
-                  ),
-                  GoRoute(
-                    path: 'edit',
-                    builder:
-                        (context, state) => AddReturnScreen(
-                          itemToEdit: state.extra as ReturnItem?,
-                        ),
-                  ),
-                ],
+                builder: (context, state) => const SupplierScreen(),
+              ),
+              GoRoute(
+                path: '/suppliers',
+                builder: (context, state) => const SupplierScreen(),
               ),
             ],
           ),

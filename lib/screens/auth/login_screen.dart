@@ -28,6 +28,18 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     super.dispose();
   }
 
+  Future<void> _handleDemoLogin() async {
+    _emailController.text = 'adminsubash@gmail.com';
+    _passwordController.text = 'adminsubash';
+    await _handleLogin();
+  }
+
+  Future<void> _handleDemoPharmacistLogin() async {
+    _emailController.text = 'demo@pharmacy.com';
+    _passwordController.text = 'demo123';
+    await _handleLogin();
+  }
+
   Future<void> _handleLogin() async {
     if (_formKey.currentState!.validate()) {
       await ref
@@ -187,6 +199,84 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       TextButton(
                         onPressed: () => context.go('/signup'),
                         child: const Text('Create New Account'),
+                      ),
+                      const SizedBox(height: 24),
+                      // ── Demo Login (REMOVE before deployment) ──
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Colors.orange.shade50,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: Colors.orange.shade300,
+                            width: 1.5,
+                            // ignore: deprecated_member_use
+                          ),
+                        ),
+                        child: Column(
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.science,
+                                  size: 16,
+                                  color: Colors.orange.shade700,
+                                ),
+                                const SizedBox(width: 6),
+                                Text(
+                                  'Testing Only',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.orange.shade700,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 12),
+                            SizedBox(
+                              width: double.infinity,
+                              height: 44,
+                              child: ElevatedButton.icon(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.orange.shade600,
+                                  foregroundColor: Colors.white,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                ),
+                                onPressed: isLoading ? null : _handleDemoLogin,
+                                icon: const Icon(Icons.rocket_launch, size: 18),
+                                label: const Text(
+                                  'Demo Login (Admin)',
+                                  style: TextStyle(fontWeight: FontWeight.w600),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+                            SizedBox(
+                              width: double.infinity,
+                              height: 44,
+                              child: ElevatedButton.icon(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.teal.shade600,
+                                  foregroundColor: Colors.white,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                ),
+                                onPressed: isLoading ? null : _handleDemoPharmacistLogin,
+                                icon: const Icon(Icons.local_pharmacy, size: 18),
+                                label: const Text(
+                                  'Demo Login (Pharmacist)',
+                                  style: TextStyle(fontWeight: FontWeight.w600),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ],
                   ),

@@ -177,6 +177,7 @@ class _ReturnScreenState extends ConsumerState<ReturnScreen> {
           ],
         ),
         floatingActionButton: FloatingActionButton(
+          heroTag: 'return_screen_fab',
           backgroundColor: AppTheme.primaryGreen,
           child: const Icon(Icons.add, color: Colors.white),
           onPressed: () {

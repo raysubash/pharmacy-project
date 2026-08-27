@@ -28,14 +28,14 @@ class HomeShell extends StatelessWidget {
             label: 'Medicines',
           ),
           NavigationDestination(
-            icon: Icon(Icons.receipt_long_outlined),
-            selectedIcon: Icon(Icons.receipt_long),
-            label: 'Bills',
+            icon: Icon(Icons.history_outlined),
+            selectedIcon: Icon(Icons.history),
+            label: 'Sales History',
           ),
           NavigationDestination(
-            icon: Icon(Icons.assignment_return_outlined),
-            selectedIcon: Icon(Icons.assignment_return),
-            label: 'Returns',
+            icon: Icon(Icons.local_shipping_outlined),
+            selectedIcon: Icon(Icons.local_shipping),
+            label: 'Suppliers',
           ),
           NavigationDestination(
             icon: Icon(Icons.bar_chart_outlined),

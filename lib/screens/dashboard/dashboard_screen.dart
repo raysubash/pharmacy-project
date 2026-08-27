@@ -8,6 +8,7 @@ import '../../providers/medicine_provider.dart';
 import '../../providers/sale_provider.dart';
 import '../../utils/theme.dart';
 import '../../widgets/app_drawer.dart';
+import '../../widgets/profile_avatar_icon.dart';
 
 class DashboardScreen extends ConsumerStatefulWidget {
   const DashboardScreen({super.key});
@@ -37,39 +38,28 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               // --- Data Processing ---
               final totalMedicines = medicines.length;
               final lowStock =
-                  medicines.where((m) => m.currentStock <= m.minStock).toList();
+                  medicines
+                      .where(
+                        (m) => m.activeStatuses.contains(MedicineStatus.lowStock),
+                      )
+                      .toList();
               final expired =
                   medicines
                       .where(
-                        (m) =>
-                            m.expiryDate != null &&
-                            m.expiryDate!.isBefore(DateTime.now()),
+                        (m) => m.activeStatuses.contains(MedicineStatus.expired),
                       )
                       .toList();
-
-              // Expiring Soon: 3 months from now
-              final threeMonthsFromNow = DateTime.now().add(Duration(days: 90));
               final expiringsoon =
                   medicines
                       .where(
                         (m) =>
-                            m.expiryDate != null &&
-                            m.expiryDate!.isAfter(DateTime.now()) &&
-                            m.expiryDate!.isBefore(threeMonthsFromNow),
+                            m.activeStatuses.contains(MedicineStatus.expiringSoon),
                       )
                       .toList();
-
-              // Over Stock: unused for 2 months (createdDate + 60 days)
-              final twoMonthsAgo = DateTime.now().subtract(Duration(days: 60));
               final overStock =
                   medicines
                       .where(
-                        (m) =>
-                            m.createdDate.isBefore(twoMonthsAgo) &&
-                            m.currentStock == medicines
-                                .where((med) => med.id == m.id)
-                                .first
-                                .currentStock,
+                        (m) => m.activeStatuses.contains(MedicineStatus.overStock),
                       )
                       .toList();
 
@@ -105,6 +95,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                             context,
                             todaySalesTotal,
                             weeklySales,
+                            todaySalesList.length,
                           ),
                           const SizedBox(height: 20),
                           Text(
@@ -177,6 +168,13 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       pinned: true,
       stretch: true,
       backgroundColor: AppTheme.primaryGreen,
+      actions: const [
+        ProfileAvatarIcon(
+          radius: 20,
+          iconColor: Colors.white,
+          backgroundColor: Color(0x33FFFFFF),
+        ),
+      ],
       flexibleSpace: FlexibleSpaceBar(
         background: Container(
           decoration: const BoxDecoration(
@@ -288,6 +286,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     BuildContext context,
     double todayTotal,
     List<FlSpot> spots,
+    int todaySalesCount,
   ) {
     return Container(
       height: 160,
@@ -353,7 +352,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      '₹${todayTotal.toStringAsFixed(0)}',
+                      'Rs ${todayTotal.toStringAsFixed(0)}',
                       style: TextStyle(
                         fontSize: 32,
                         color: AppTheme.primaryGreen,
@@ -372,16 +371,16 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
-                        children: const [
-                          Icon(
-                            Icons.trending_up,
+                        children: [
+                          const Icon(
+                            Icons.receipt_long,
                             size: 14,
                             color: AppTheme.primaryGreen,
                           ),
-                          SizedBox(width: 4),
+                          const SizedBox(width: 4),
                           Text(
-                            "+12% vs yesterday", // Mock data or could be calculated
-                            style: TextStyle(
+                            '$todaySalesCount transactions today',
+                            style: const TextStyle(
                               fontSize: 12,
                               color: AppTheme.primaryGreen,
                               fontWeight: FontWeight.bold,
@@ -398,13 +397,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                     color: AppTheme.primaryGreen.withValues(alpha: 0.1),
                     shape: BoxShape.circle,
                   ),
-                  child: const Text(
-                    'Rs',
-                    style: TextStyle(
-                      color: AppTheme.primaryGreen,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 20,
-                    ),
+                  child: const Icon(
+                    Icons.monetization_on_outlined,
+                    color: AppTheme.primaryGreen,
+                    size: 28,
                   ),
                 ),
               ],
@@ -532,17 +528,17 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         ),
         _buildActionButton(
           context,
-          'Add Bill',
-          Icons.receipt_long,
+          'Sales History',
+          Icons.history,
           const Color(0xFFFF9800), // Orange
-          () => context.push('/bills/add'),
+          () => context.go('/bills'),
         ),
         _buildActionButton(
           context,
-          'Returns',
-          Icons.assignment_return,
+          'Suppliers',
+          Icons.local_shipping,
           const Color(0xFF9C27B0), // Purple
-          () => context.push('/returns'),
+          () => context.go('/returns'),
         ),
       ],
     );

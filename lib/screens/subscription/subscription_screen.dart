@@ -247,7 +247,7 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Khalti Subscription"),
+        title: const Text("Subscription Plans"),
         backgroundColor: Colors.deepPurple,
         foregroundColor: Colors.white,
       ),
@@ -451,7 +451,7 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Text(
-                        "FIRST PAY\nADD STATEMENT",
+                        "How to Pay:",
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 16,
@@ -459,7 +459,11 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
                       ),
                       const SizedBox(height: 8),
                       const Text(
-                        "My Esewa ID is 9746814074\nMy Khalti ID is 9746814074",
+                        "1. Send payment to:\n"
+                        "   • eSewa: 9746814074\n"
+                        "   • Khalti: 9746814074\n\n"
+                        "2. Take a screenshot of the payment\n"
+                        "3. Upload the screenshot below",
                       ),
                       const SizedBox(height: 20),
                       if (selectedImage != null)

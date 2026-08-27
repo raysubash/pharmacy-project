@@ -8,6 +8,7 @@ import '../utils/theme.dart';
 import '../providers/profile_provider.dart';
 import '../providers/return_provider.dart';
 import '../providers/sale_provider.dart';
+import 'profile_avatar_icon.dart';
 
 class AppDrawer extends ConsumerWidget {
   const AppDrawer({super.key});
@@ -41,14 +42,11 @@ class AppDrawer extends ConsumerWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
-                    const CircleAvatar(
-                      radius: 30,
+                    const ProfileAvatarIcon(
+                      radius: 28,
+                      isClickable: false,
+                      iconColor: AppTheme.primaryGreen,
                       backgroundColor: Colors.white,
-                      child: Icon(
-                        Icons.local_pharmacy, // Changed to pharmacy icon
-                        size: 40,
-                        color: AppTheme.primaryGreen,
-                      ),
                     ),
                     const SizedBox(height: 10),
                     Text(
@@ -77,6 +75,7 @@ class AppDrawer extends ConsumerWidget {
             leading: const Icon(Icons.dashboard),
             title: const Text('Dashboard'),
             onTap: () {
+              Navigator.pop(context);
               context.go('/dashboard');
             },
           ),
@@ -84,27 +83,31 @@ class AppDrawer extends ConsumerWidget {
             leading: const Icon(Icons.medication),
             title: const Text('Medicines'),
             onTap: () {
+              Navigator.pop(context);
               context.go('/medicines');
             },
           ),
           ListTile(
-            leading: const Icon(Icons.receipt_long),
-            title: const Text('Bills'),
+            leading: const Icon(Icons.history),
+            title: const Text('Sales History'),
             onTap: () {
+              Navigator.pop(context);
               context.go('/bills');
             },
           ),
           ListTile(
-            leading: const Icon(Icons.assignment_return),
-            title: const Text('Returns'),
+            leading: const Icon(Icons.local_shipping),
+            title: const Text('Suppliers Directory'),
             onTap: () {
-              context.go('/returns');
+              Navigator.pop(context);
+              context.go('/suppliers');
             },
           ),
           ListTile(
             leading: const Icon(Icons.bar_chart),
             title: const Text('Reports'),
             onTap: () {
+              Navigator.pop(context);
               context.go('/reports');
             },
           ),
@@ -112,6 +115,7 @@ class AppDrawer extends ConsumerWidget {
             leading: const Icon(Icons.receipt),
             title: const Text('Customer Bill'),
             onTap: () {
+              Navigator.pop(context);
               context.push('/customer_bill');
             },
           ),
@@ -119,6 +123,7 @@ class AppDrawer extends ConsumerWidget {
             leading: const Icon(Icons.payment),
             title: const Text('Subscription'),
             onTap: () {
+              Navigator.pop(context);
               context.push('/subscription');
             },
           ),
@@ -127,6 +132,7 @@ class AppDrawer extends ConsumerWidget {
             leading: const Icon(Icons.person),
             title: const Text('Profile'),
             onTap: () {
+              Navigator.pop(context);
               context.go('/profile');
             },
           ),

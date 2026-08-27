@@ -23,13 +23,14 @@ class PharmacyProfileAdapter extends TypeAdapter<PharmacyProfile> {
       panNumber: fields[3] as String,
       phoneNumber: fields[4] as String,
       subscription: fields[5] as SubscriptionInfo?,
+      profileImagePath: fields[6] as String?,
     );
   }
 
   @override
   void write(BinaryWriter writer, PharmacyProfile obj) {
     writer
-      ..writeByte(6)
+      ..writeByte(7)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -41,7 +42,9 @@ class PharmacyProfileAdapter extends TypeAdapter<PharmacyProfile> {
       ..writeByte(4)
       ..write(obj.phoneNumber)
       ..writeByte(5)
-      ..write(obj.subscription);
+      ..write(obj.subscription)
+      ..writeByte(6)
+      ..write(obj.profileImagePath);
   }
 
   @override

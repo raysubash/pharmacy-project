@@ -16,6 +16,8 @@ class PharmacyProfile {
   String phoneNumber;
   @HiveField(5)
   SubscriptionInfo? subscription;
+  @HiveField(6)
+  String? profileImagePath;
 
   PharmacyProfile({
     required this.id,
@@ -24,6 +26,7 @@ class PharmacyProfile {
     required this.panNumber,
     required this.phoneNumber,
     this.subscription,
+    this.profileImagePath,
   });
 
   factory PharmacyProfile.fromJson(Map<String, dynamic> json) {
@@ -37,6 +40,7 @@ class PharmacyProfile {
           json['subscription'] != null
               ? SubscriptionInfo.fromJson(json['subscription'])
               : null,
+      profileImagePath: json['profileImagePath'],
     );
   }
 
@@ -47,6 +51,7 @@ class PharmacyProfile {
       'location': location,
       'panNumber': panNumber,
       'phoneNumber': phoneNumber,
+      if (profileImagePath != null) 'profileImagePath': profileImagePath,
     };
   }
 }

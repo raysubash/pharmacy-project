@@ -7,17 +7,14 @@ import '../models/bill_model.dart';
 import '../models/return_model.dart';
 import '../models/pharmacy_profile_model.dart';
 import '../models/sale_model.dart';
+import 'local_storage_service.dart';
 
 class ApiService {
   // Use 10.0.2.2 for Android Emulator, localhost for iOS Simulator/Web/Desktop
   // static const String baseUrl = 'http://localhost:5000/api';
 
-  // Use local backend for development (Replace localhost with your IP if testing on real phone)
-  // static const String baseUrl = 'http://localhost:5000/api';
-
-  // Use the live server URL from Render (Uncomment when deploying)
-  static const String baseUrl =
-      'https://pharmacy-project-wkdo.onrender.com/api';
+  // Use local backend for development
+  static const String baseUrl = 'http://localhost:5000/api';
 
   static final Dio _dio = Dio(BaseOptions(baseUrl: baseUrl))
     ..interceptors.add(
@@ -147,20 +144,32 @@ class ApiService {
   static Future<PharmacyProfile?> getProfile() async {
     try {
       final response = await _dio.get('/profile');
-      return PharmacyProfile.fromJson(response.data);
+      final p = PharmacyProfile.fromJson(response.data);
+      final localP = LocalStorageService.getProfile();
+      if ((p.profileImagePath == null || p.profileImagePath!.isEmpty) && localP?.profileImagePath != null) {
+        p.profileImagePath = localP!.profileImagePath;
+      }
+      await LocalStorageService.saveProfile(p);
+      return p;
     } catch (e) {
-      print('Error fetching profile: $e');
-      return null;
+      print('Error fetching profile from network, getting local: $e');
+      return LocalStorageService.getProfile();
     }
   }
 
   static Future<PharmacyProfile?> saveProfile(PharmacyProfile profile) async {
     try {
       final response = await _dio.post('/profile', data: profile.toJson());
-      return PharmacyProfile.fromJson(response.data);
+      final saved = PharmacyProfile.fromJson(response.data);
+      if ((saved.profileImagePath == null || saved.profileImagePath!.isEmpty) && profile.profileImagePath != null) {
+        saved.profileImagePath = profile.profileImagePath;
+      }
+      await LocalStorageService.saveProfile(saved);
+      return saved;
     } catch (e) {
-      print('Error saving profile: $e');
-      rethrow;
+      print('Error saving profile to network, saving locally: $e');
+      await LocalStorageService.saveProfile(profile);
+      return profile;
     }
   }
 

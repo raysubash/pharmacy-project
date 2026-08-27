@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:hive_flutter/hive_flutter.dart';
 import '../models/medicine_model.dart';
 import '../models/sale_model.dart';
@@ -16,6 +17,21 @@ class LocalStorageService {
   static const String _activeUserKeyField = 'active_user_key';
   static const String _fallbackUserKey = 'guest_user';
 
+  /// Safely opens a Hive box, clearing stale lock files on failure.
+  static Future<Box<T>> _safeOpenBox<T>(String name) async {
+    try {
+      return await Hive.openBox<T>(name);
+    } on FileSystemException {
+      // Delete stale lock file and retry
+      final home = Platform.environment['HOME'] ?? '/tmp';
+      final lockFile = File('$home/Documents/$name.lock');
+      if (await lockFile.exists()) {
+        await lockFile.delete();
+      }
+      return await Hive.openBox<T>(name);
+    }
+  }
+
   static Future<void> init() async {
     await Hive.initFlutter();
 
@@ -30,13 +46,13 @@ class LocalStorageService {
     Hive.registerAdapter(BillItemAdapter());
     Hive.registerAdapter(ReturnItemAdapter());
 
-    // Open Boxes
-    await Hive.openBox(configBoxName);
-    await Hive.openBox<Medicine>(medicineBoxName);
-    await Hive.openBox<Sale>(saleBoxName);
-    await Hive.openBox<PurchaseBill>(billBoxName);
-    await Hive.openBox<ReturnItem>(returnBoxName);
-    await Hive.openBox<PharmacyProfile>(profileBoxName);
+    // Open Boxes — with lock file recovery
+    await _safeOpenBox(configBoxName);
+    await _safeOpenBox<Medicine>(medicineBoxName);
+    await _safeOpenBox<Sale>(saleBoxName);
+    await _safeOpenBox<PurchaseBill>(billBoxName);
+    await _safeOpenBox<ReturnItem>(returnBoxName);
+    await _safeOpenBox<PharmacyProfile>(profileBoxName);
   }
 
   static Future<void> setActiveUserKey(String? userKey) async {

@@ -32,13 +32,15 @@ class MedicineAdapter extends TypeAdapter<Medicine> {
       imagePath: fields[12] as String?,
       batchNumber: fields[13] as String?,
       expiryDate: fields[14] as DateTime?,
+      createdDate: fields[15] as DateTime?,
+      maxStock: fields[16] as int?,
     );
   }
 
   @override
   void write(BinaryWriter writer, Medicine obj) {
     writer
-      ..writeByte(15)
+      ..writeByte(17)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -68,7 +70,11 @@ class MedicineAdapter extends TypeAdapter<Medicine> {
       ..writeByte(13)
       ..write(obj.batchNumber)
       ..writeByte(14)
-      ..write(obj.expiryDate);
+      ..write(obj.expiryDate)
+      ..writeByte(15)
+      ..write(obj.createdDate)
+      ..writeByte(16)
+      ..write(obj.maxStock);
   }
 
   @override

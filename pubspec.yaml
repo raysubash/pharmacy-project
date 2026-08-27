@@ -56,6 +56,7 @@ dependencies:
   full_screen_image: ^2.0.0
   hive: ^2.2.3
   hive_flutter: ^1.1.0
+  url_launcher: ^6.3.1
 
 dependency_overrides:
   vector_math: ^2.1.5

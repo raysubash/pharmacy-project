@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/pharmacy_profile_model.dart';
 import '../services/api_service.dart';
+import '../services/local_storage_service.dart';
 
 final profileProvider =
     AsyncNotifierProvider<ProfileNotifier, PharmacyProfile?>(() {
@@ -14,12 +15,15 @@ class ProfileNotifier extends AsyncNotifier<PharmacyProfile?> {
   }
 
   Future<void> saveProfile(PharmacyProfile profile) async {
-    state = const AsyncValue.loading();
+    state = AsyncValue.data(profile);
     try {
-      await ApiService.saveProfile(profile);
-      ref.invalidateSelf();
+      final updated = await ApiService.saveProfile(profile);
+      if (updated != null) {
+        state = AsyncValue.data(updated);
+      }
     } catch (e) {
-      // Handle error
+      await LocalStorageService.saveProfile(profile);
+      state = AsyncValue.data(profile);
     }
   }
 

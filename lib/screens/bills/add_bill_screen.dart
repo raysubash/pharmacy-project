@@ -387,7 +387,7 @@ class _AddPurchaseBillScreenState extends ConsumerState<AddPurchaseBillScreen> {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Text(
-                            '₹${item.totalAmount.toStringAsFixed(2)}',
+                            'Rs ${item.totalAmount.toStringAsFixed(2)}',
                             style: const TextStyle(fontWeight: FontWeight.bold),
                           ),
                           IconButton(
@@ -416,7 +416,7 @@ class _AddPurchaseBillScreenState extends ConsumerState<AddPurchaseBillScreen> {
                         ),
                       ),
                       Text(
-                        '₹${_billItems.fold(0.0, (sum, item) => sum + item.totalAmount).toStringAsFixed(2)}',
+                        'Rs ${_billItems.fold(0.0, (sum, item) => sum + item.totalAmount).toStringAsFixed(2)}',
                         style: const TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.bold,

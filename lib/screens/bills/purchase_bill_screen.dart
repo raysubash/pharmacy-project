@@ -17,6 +17,7 @@ class PurchaseBillScreen extends ConsumerWidget {
       drawer: const AppDrawer(),
       appBar: AppBar(title: const Text('Purchase Bills')),
       floatingActionButton: FloatingActionButton(
+        heroTag: 'purchase_bill_fab',
         onPressed: () {
           context.go('/bills/add');
         },
@@ -70,7 +71,7 @@ class PurchaseBillScreen extends ConsumerWidget {
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
                       Text(
-                        '₹${bill.totalAmount.toStringAsFixed(2)}',
+                        'Rs ${bill.totalAmount.toStringAsFixed(2)}',
                         style: const TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 16,
@@ -230,7 +231,7 @@ class PurchaseBillScreen extends ConsumerWidget {
                                           ),
                                           isThreeLine: true,
                                           trailing: Text(
-                                            '₹${item.totalAmount}',
+                                            'Rs ${item.totalAmount}',
                                             style: const TextStyle(
                                               fontWeight: FontWeight.bold,
                                             ),
@@ -256,7 +257,7 @@ class PurchaseBillScreen extends ConsumerWidget {
                                           ),
                                         ),
                                         Text(
-                                          '₹${bill.totalAmount}',
+                                          'Rs ${bill.totalAmount}',
                                           style: const TextStyle(
                                             fontSize: 18,
                                             fontWeight: FontWeight.bold,

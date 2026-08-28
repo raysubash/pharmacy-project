@@ -5,7 +5,6 @@ import 'package:intl/intl.dart';
 import '../../providers/return_provider.dart';
 import '../../models/return_model.dart';
 import '../../utils/theme.dart';
-import '../../widgets/app_drawer.dart';
 
 class ReturnScreen extends ConsumerStatefulWidget {
   const ReturnScreen({super.key});
@@ -114,8 +113,17 @@ class _ReturnScreenState extends ConsumerState<ReturnScreen> {
     return DefaultTabController(
       length: 2,
       child: Scaffold(
-        drawer: const AppDrawer(),
         appBar: AppBar(
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back, color: Colors.white),
+            onPressed: () {
+              if (context.canPop()) {
+                context.pop();
+              } else {
+                context.go('/dashboard');
+              }
+            },
+          ),
           elevation: 0,
           title: const Text('Returns Management'),
           bottom: const TabBar(

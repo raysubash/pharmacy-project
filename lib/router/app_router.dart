@@ -17,6 +17,7 @@ import '../screens/profile/profile_screen.dart';
 import '../screens/bills/customer_bill_screen.dart';
 import '../screens/subscription/subscription_screen.dart';
 import '../screens/admin/admin_dashboard_screen.dart';
+import '../providers/auth_provider.dart';
 
 MedicineFilter _medicineFilterFromQuery(String? filter) {
   switch (filter) {
@@ -32,9 +33,26 @@ MedicineFilter _medicineFilterFromQuery(String? filter) {
 final _rootNavigatorKey = GlobalKey<NavigatorState>();
 
 final routerProvider = Provider<GoRouter>((ref) {
+  final authState = ref.watch(authProvider);
+
   return GoRouter(
     navigatorKey: _rootNavigatorKey,
-    initialLocation: '/login',
+    initialLocation: authState.isAuthenticated ? '/dashboard' : '/login',
+    redirect: (context, state) {
+      final isLoggedIn = authState.isAuthenticated;
+      final isAuthRoute =
+          state.matchedLocation == '/login' || state.matchedLocation == '/signup';
+
+      if (!isLoggedIn) {
+        return isAuthRoute ? null : '/login';
+      }
+
+      if (isAuthRoute) {
+        return '/dashboard';
+      }
+
+      return null;
+    },
     routes: [
       GoRoute(path: '/login', builder: (context, state) => const LoginScreen()),
       GoRoute(
@@ -42,11 +60,8 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const SignupScreen(),
       ),
       GoRoute(
-        path: '/profile',
-        builder:
-            (context, state) => ProfileScreen(
-              isSetupMode: state.extra is bool ? state.extra as bool : false,
-            ),
+        path: '/reports',
+        builder: (context, state) => const ReportsScreen(),
       ),
       GoRoute(
         path: '/notifications',
@@ -130,8 +145,12 @@ final routerProvider = Provider<GoRouter>((ref) {
           StatefulShellBranch(
             routes: [
               GoRoute(
-                path: '/reports',
-                builder: (context, state) => const ReportsScreen(),
+                path: '/profile',
+                builder:
+                    (context, state) => ProfileScreen(
+                      isSetupMode:
+                          state.extra is bool ? state.extra as bool : false,
+                    ),
               ),
             ],
           ),

@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const PurchaseBill = require("../models/Bill");
-const Medicine = require("../models/Medicine");
+const { recordStockMovement } = require("../services/stockService");
 
 // Get all bills
 router.get("/", async (req, res) => {
@@ -27,24 +27,45 @@ router.get("/:id", async (req, res) => {
   }
 });
 
-// Create bill (and update medicine stock)
+// Create bill — stock is increased via stockService for each item
 router.post("/", async (req, res) => {
   const bill = new PurchaseBill(req.body);
   try {
     const newBill = await bill.save();
 
-    // Update medicine stock logic (optional: based on user requirement)
-    // Iterate through items and update Medicine stock
+    // Increase medicine stock for each purchased item
+    const stockErrors = [];
     for (const item of newBill.items) {
-      // Find medicine by ID or Name?
-      // Since we reference medicineId, we can use that.
-      // If medicineId is not a MongoDB ObjectId, we might need a mapping.
-      // But assuming the frontend will send data that matches.
-      // For now, let's keep it simple.
-      // TODO: Stock update logic
+      if (item.medicineId && item.medicineId.length === 24) {
+        try {
+          await recordStockMovement({
+            medicineId: item.medicineId,
+            type: "PURCHASE",
+            quantity: item.quantity,
+            referenceId: newBill._id.toString(),
+            reason: `Purchase Bill - ${newBill.billNumber} from ${newBill.supplierName}`,
+            userId: "purchase",
+          });
+        } catch (err) {
+          stockErrors.push({
+            medicineId: item.medicineId,
+            medicineName: item.medicineName,
+            error: err.message,
+          });
+        }
+      }
     }
 
-    res.status(201).json(newBill);
+    if (stockErrors.length > 0) {
+      res.status(201).json({
+        bill: newBill,
+        warnings: stockErrors,
+        message:
+          "Bill created but some stock updates failed. Check warnings.",
+      });
+    } else {
+      res.status(201).json(newBill);
+    }
   } catch (err) {
     res.status(400).json({ message: err.message });
   }

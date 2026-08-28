@@ -7,26 +7,59 @@ import '../models/bill_model.dart';
 import '../models/return_model.dart';
 import '../models/pharmacy_profile_model.dart';
 import '../models/sale_model.dart';
-import 'local_storage_service.dart';
+import '../models/stock_transaction_model.dart';
 
 class ApiService {
-  // Use 10.0.2.2 for Android Emulator, localhost for iOS Simulator/Web/Desktop
-  // static const String baseUrl = 'http://localhost:5000/api';
+  // Production Render URL for release APK and network connections
+  static const String baseUrl = 'https://pharmacy-project-wkdo.onrender.com/api';
 
-  // Use local backend for development
-  static const String baseUrl = 'http://localhost:5000/api';
-
-  static final Dio _dio = Dio(BaseOptions(baseUrl: baseUrl))
-    ..interceptors.add(
+  static final Dio _dio = Dio(
+    BaseOptions(
+      baseUrl: baseUrl,
+      connectTimeout: const Duration(seconds: 60),
+      receiveTimeout: const Duration(seconds: 60),
+      headers: {
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0',
+      },
+    ),
+  )..interceptors.add(
       InterceptorsWrapper(
         onRequest: (options, handler) async {
           final prefs = await SharedPreferences.getInstance();
           final token = prefs.getString('token');
-          if (token != null) {
-            options.headers['Authorization'] =
-                'Bearer $token'; // Adjust based on your API
+          if (token != null && token.isNotEmpty) {
+            options.headers['Authorization'] = 'Bearer $token';
+          } else {
+            options.headers.remove('Authorization');
           }
+          options.headers['Cache-Control'] =
+              'no-cache, no-store, must-revalidate';
+          options.headers['Pragma'] = 'no-cache';
+          options.headers['Expires'] = '0';
           return handler.next(options);
+        },
+        onError: (DioException error, handler) async {
+          // Retry on connection timeout, receive timeout, or 503 Service Unavailable (Render waking up)
+          final isTimeout = error.type == DioExceptionType.connectionTimeout ||
+              error.type == DioExceptionType.receiveTimeout;
+          final is503 = error.response?.statusCode == 503 ||
+              error.response?.statusCode == 504;
+
+          final retryCount = (error.requestOptions.extra['retryCount'] as int?) ?? 0;
+
+          if ((isTimeout || is503) && retryCount < 2) {
+            error.requestOptions.extra['retryCount'] = retryCount + 1;
+            await Future.delayed(Duration(seconds: 2 * (retryCount + 1)));
+            try {
+              final response = await _dio.fetch(error.requestOptions);
+              return handler.resolve(response);
+            } catch (e) {
+              return handler.next(error);
+            }
+          }
+          return handler.next(error);
         },
       ),
     );
@@ -58,7 +91,7 @@ class ApiService {
     try {
       final response = await _dio.put(
         '/medicines/$id',
-        data: medicine.toJson(),
+        data: medicine.toJsonForUpdate(),
       );
       return Medicine.fromJson(response.data);
     } catch (e) {
@@ -144,32 +177,20 @@ class ApiService {
   static Future<PharmacyProfile?> getProfile() async {
     try {
       final response = await _dio.get('/profile');
-      final p = PharmacyProfile.fromJson(response.data);
-      final localP = LocalStorageService.getProfile();
-      if ((p.profileImagePath == null || p.profileImagePath!.isEmpty) && localP?.profileImagePath != null) {
-        p.profileImagePath = localP!.profileImagePath;
-      }
-      await LocalStorageService.saveProfile(p);
-      return p;
+      return PharmacyProfile.fromJson(response.data);
     } catch (e) {
-      print('Error fetching profile from network, getting local: $e');
-      return LocalStorageService.getProfile();
+      print('Error fetching profile: $e');
+      return null;
     }
   }
 
   static Future<PharmacyProfile?> saveProfile(PharmacyProfile profile) async {
     try {
       final response = await _dio.post('/profile', data: profile.toJson());
-      final saved = PharmacyProfile.fromJson(response.data);
-      if ((saved.profileImagePath == null || saved.profileImagePath!.isEmpty) && profile.profileImagePath != null) {
-        saved.profileImagePath = profile.profileImagePath;
-      }
-      await LocalStorageService.saveProfile(saved);
-      return saved;
+      return PharmacyProfile.fromJson(response.data);
     } catch (e) {
-      print('Error saving profile to network, saving locally: $e');
-      await LocalStorageService.saveProfile(profile);
-      return profile;
+      print('Error saving profile: $e');
+      rethrow;
     }
   }
 
@@ -192,6 +213,15 @@ class ApiService {
       return Sale.fromJson(response.data);
     } catch (e) {
       print('Error adding sale: $e');
+      rethrow;
+    }
+  }
+
+  static Future<void> deleteAllSales() async {
+    try {
+      await _dio.delete('/sales');
+    } catch (e) {
+      print('Error deleting sales: $e');
       rethrow;
     }
   }
@@ -306,6 +336,65 @@ class ApiService {
       await _dio.delete('/admin/users/$id');
     } catch (e) {
       print('Error deleting user: $e');
+      rethrow;
+    }
+  }
+
+  // ─── Stock Movement Operations ──────────────────────────────────────
+
+  /// Record a stock movement (ADJUSTMENT, DAMAGE, INITIAL, RETURN_IN, RETURN_OUT)
+  static Future<Map<String, dynamic>> recordStockMovement({
+    required String medicineId,
+    required String type,
+    required int quantity,
+    String? referenceId,
+    String reason = '',
+    String userId = 'manual',
+  }) async {
+    try {
+      final response = await _dio.post('/stock/movement', data: {
+        'medicineId': medicineId,
+        'type': type,
+        'quantity': quantity,
+        'referenceId': referenceId,
+        'reason': reason,
+        'userId': userId,
+      });
+      return response.data;
+    } catch (e) {
+      print('Error recording stock movement: $e');
+      rethrow;
+    }
+  }
+
+  /// Get stock transaction history for a medicine
+  static Future<List<StockTransaction>> getStockTransactions(
+    String medicineId, {
+    int limit = 100,
+  }) async {
+    try {
+      final response = await _dio.get(
+        '/stock/transactions/$medicineId',
+        queryParameters: {'limit': limit},
+      );
+      return (response.data as List)
+          .map((json) => StockTransaction.fromJson(json))
+          .toList();
+    } catch (e) {
+      print('Error fetching stock transactions: $e');
+      return [];
+    }
+  }
+
+  /// Reconcile stock for a single medicine
+  static Future<Map<String, dynamic>> reconcileStock(
+    String medicineId,
+  ) async {
+    try {
+      final response = await _dio.get('/stock/reconcile/$medicineId');
+      return response.data;
+    } catch (e) {
+      print('Error reconciling stock: $e');
       rethrow;
     }
   }

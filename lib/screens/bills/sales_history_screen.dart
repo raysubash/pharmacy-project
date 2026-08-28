@@ -11,7 +11,6 @@ import '../../providers/sale_provider.dart';
 import '../../providers/profile_provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../utils/theme.dart';
-import '../../widgets/app_drawer.dart';
 import '../../widgets/profile_avatar_icon.dart';
 
 class SalesHistoryScreen extends ConsumerStatefulWidget {
@@ -32,14 +31,74 @@ class _SalesHistoryScreenState extends ConsumerState<SalesHistoryScreen> {
     super.dispose();
   }
 
+  Future<void> _confirmClearAllSales(BuildContext context) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF1E293B),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Row(
+          children: [
+            Icon(Icons.warning_amber_rounded, color: Colors.redAccent),
+            SizedBox(width: 8),
+            Text(
+              'Clear Sales History',
+              style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+            ),
+          ],
+        ),
+        content: const Text(
+          'Are you sure you want to delete all sales history from database? This action cannot be undone.',
+          style: TextStyle(color: Colors.white70),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.redAccent,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Delete All'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && mounted) {
+      await ref.read(saleProvider.notifier).clearAllSales();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('All sales history deleted successfully!'),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final salesAsync = ref.watch(saleProvider);
 
     return Scaffold(
       backgroundColor: Colors.grey[100],
-      drawer: const AppDrawer(),
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () {
+            if (context.canPop()) {
+              context.pop();
+            } else {
+              context.go('/dashboard');
+            }
+          },
+        ),
         elevation: 0,
         backgroundColor: AppTheme.primaryGreen,
         title: const Text(
@@ -48,18 +107,30 @@ class _SalesHistoryScreenState extends ConsumerState<SalesHistoryScreen> {
         ),
         actions: [
           IconButton(
+            icon: const Icon(Icons.delete_sweep_outlined, color: Colors.white),
+            tooltip: 'Clear All Sales History',
+            onPressed: () => _confirmClearAllSales(context),
+          ),
+          IconButton(
             icon: const Icon(Icons.add_shopping_cart, color: Colors.white),
             tooltip: 'New Sale',
             onPressed: () => context.push('/customer_bill'),
           ),
           IconButton(
+            icon: const Icon(Icons.notifications_outlined, color: Colors.white),
+            onPressed: () => context.push('/notifications'),
+          ),
+          IconButton(
             icon: const Icon(Icons.refresh, color: Colors.white),
             onPressed: () => ref.invalidate(saleProvider),
           ),
-          const ProfileAvatarIcon(
-            radius: 20,
-            iconColor: Colors.white,
-            backgroundColor: Color(0x33FFFFFF),
+          const Padding(
+            padding: EdgeInsets.only(right: 12.0, left: 4.0),
+            child: ProfileAvatarIcon(
+              radius: 18,
+              iconColor: Colors.white,
+              backgroundColor: Color(0x33FFFFFF),
+            ),
           ),
         ],
       ),
@@ -84,11 +155,13 @@ class _SalesHistoryScreenState extends ConsumerState<SalesHistoryScreen> {
                   sale.date.month == now.month &&
                   sale.date.day == now.day;
             } else if (_selectedFilter == 'Cash') {
-              return sale.payMode == 'Cash';
+              return sale.payMode.toLowerCase().contains('cash');
             } else if (_selectedFilter == 'Fonepay') {
-              return sale.payMode == 'Fonepay';
+              return sale.payMode.toLowerCase().contains('fone') ||
+                  sale.payMode.toLowerCase().contains('qr') ||
+                  sale.payMode.toLowerCase().contains('online');
             } else if (_selectedFilter == 'Credit') {
-              return sale.payMode == 'Credit';
+              return sale.payMode.toLowerCase().contains('credit');
             }
             return true;
           }).toList();
@@ -136,8 +209,6 @@ class _SalesHistoryScreenState extends ConsumerState<SalesHistoryScreen> {
       ),
     );
   }
-
-
 
   Widget _buildSearchAndFilter() {
     return Container(
@@ -203,20 +274,32 @@ class _SalesHistoryScreenState extends ConsumerState<SalesHistoryScreen> {
 
   Widget _buildSaleCard(Sale sale) {
     final dateFormat = DateFormat('yyyy-MM-dd • hh:mm a');
-    Color payModeColor;
-    switch (sale.payMode) {
-      case 'Cash':
-        payModeColor = Colors.green;
-        break;
-      case 'Fonepay':
-        payModeColor = Colors.blue;
-        break;
-      case 'Credit':
-        payModeColor = Colors.orange;
-        break;
-      default:
-        payModeColor = Colors.grey;
-    }
+    final modeLower = sale.payMode.toLowerCase();
+    final isCash = modeLower.contains('cash');
+    final isFonepay = modeLower.contains('fone') || modeLower.contains('qr') || modeLower.contains('online');
+    final isCredit = modeLower.contains('credit');
+
+    final displayPayMode = isFonepay
+        ? 'Fonepay'
+        : isCash
+            ? 'Cash'
+            : isCredit
+                ? 'Credit'
+                : sale.payMode;
+
+    final payModeColor = isFonepay
+        ? Colors.blue
+        : isCash
+            ? Colors.green
+            : isCredit
+                ? Colors.orange
+                : Colors.grey;
+
+    final payModeIcon = isFonepay
+        ? Icons.qr_code_scanner
+        : isCash
+            ? Icons.payments_outlined
+            : Icons.credit_card;
 
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
@@ -260,17 +343,13 @@ class _SalesHistoryScreenState extends ConsumerState<SalesHistoryScreen> {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Icon(
-                          sale.payMode == 'Cash'
-                              ? Icons.money
-                              : sale.payMode == 'Fonepay'
-                                  ? Icons.qr_code
-                                  : Icons.credit_card,
+                          payModeIcon,
                           size: 14,
                           color: payModeColor,
                         ),
                         const SizedBox(width: 4),
                         Text(
-                          sale.payMode,
+                          displayPayMode,
                           style: TextStyle(
                             color: payModeColor,
                             fontWeight: FontWeight.bold,
@@ -414,6 +493,12 @@ class _SalesHistoryScreenState extends ConsumerState<SalesHistoryScreen> {
     final pharmacyAddress = (profile?.location.isNotEmpty == true) ? profile!.location : 'Kathmandu, Nepal';
     final pharmacyPhone = (profile?.phoneNumber.isNotEmpty == true) ? profile!.phoneNumber : '9841234567';
     final pharmacyPan = (profile?.panNumber.isNotEmpty == true) ? profile!.panNumber : '1234-123-9874';
+
+    final modeLower = sale.payMode.toLowerCase();
+    final isFonepay = modeLower.contains('fone') || modeLower.contains('qr') || modeLower.contains('online');
+    final isCredit = modeLower.contains('credit');
+    final modalPayMode = isFonepay ? 'FONEPAY' : (isCredit ? 'CREDIT' : 'CASH');
+    final modalPayColor = isFonepay ? Colors.blue : (isCredit ? Colors.orange : AppTheme.primaryGreen);
 
     showModalBottomSheet(
       context: context,
@@ -580,15 +665,15 @@ class _SalesHistoryScreenState extends ConsumerState<SalesHistoryScreen> {
                                     Container(
                                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                                       decoration: BoxDecoration(
-                                        color: AppTheme.primaryGreen.withValues(alpha: 0.12),
+                                        color: modalPayColor.withValues(alpha: 0.12),
                                         borderRadius: BorderRadius.circular(10),
                                       ),
                                       child: Text(
-                                        'Pay: ${sale.payMode.toUpperCase()}',
-                                        style: const TextStyle(
+                                        'Pay: $modalPayMode',
+                                        style: TextStyle(
                                           fontSize: 10,
                                           fontWeight: FontWeight.bold,
-                                          color: AppTheme.primaryGreen,
+                                          color: modalPayColor,
                                         ),
                                       ),
                                     ),
@@ -604,7 +689,7 @@ class _SalesHistoryScreenState extends ConsumerState<SalesHistoryScreen> {
 
                           // 3. Itemized Table Headers
                           Container(
-                            padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 8),
+                            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
                             decoration: BoxDecoration(
                               color: Colors.grey[100],
                               borderRadius: BorderRadius.circular(6),
@@ -620,15 +705,15 @@ class _SalesHistoryScreenState extends ConsumerState<SalesHistoryScreen> {
                                   child: Text('ITEM NAME', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
                                 ),
                                 SizedBox(
-                                  width: 36,
+                                  width: 40,
                                   child: Text('QTY', textAlign: TextAlign.center, style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
                                 ),
                                 SizedBox(
-                                  width: 60,
+                                  width: 65,
                                   child: Text('RATE', textAlign: TextAlign.right, style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
                                 ),
                                 SizedBox(
-                                  width: 65,
+                                  width: 75,
                                   child: Text('AMOUNT', textAlign: TextAlign.right, style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
                                 ),
                               ],
@@ -637,60 +722,105 @@ class _SalesHistoryScreenState extends ConsumerState<SalesHistoryScreen> {
                           const SizedBox(height: 6),
 
                           // Items List Rows
-                          ListView.separated(
-                            shrinkWrap: true,
-                            physics: const NeverScrollableScrollPhysics(),
-                            itemCount: sale.items.length,
-                            separatorBuilder: (_, __) => Divider(height: 1, color: Colors.grey[200]),
-                            itemBuilder: (context, index) {
-                              final item = sale.items[index];
-                              return Padding(
-                                padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 4.0),
-                                child: Row(
-                                  children: [
-                                    SizedBox(
-                                      width: 24,
-                                      child: Text(
-                                        '${index + 1}',
-                                        style: const TextStyle(fontSize: 11, color: Colors.grey),
-                                      ),
-                                    ),
-                                    Expanded(
-                                      flex: 3,
-                                      child: Text(
-                                        item.medicineName,
-                                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
-                                      ),
-                                    ),
-                                    SizedBox(
-                                      width: 36,
-                                      child: Text(
-                                        '${item.quantity}',
-                                        textAlign: TextAlign.center,
-                                        style: const TextStyle(fontSize: 12),
-                                      ),
-                                    ),
-                                    SizedBox(
-                                      width: 60,
-                                      child: Text(
-                                        item.price.toStringAsFixed(0),
-                                        textAlign: TextAlign.right,
-                                        style: const TextStyle(fontSize: 12),
-                                      ),
-                                    ),
-                                    SizedBox(
-                                      width: 65,
-                                      child: Text(
-                                        item.total.toStringAsFixed(0),
-                                        textAlign: TextAlign.right,
-                                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
-                                      ),
-                                    ),
-                                  ],
+                          if (sale.items.isEmpty)
+                            Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 16.0),
+                              child: Center(
+                                child: Text(
+                                  'No item breakdown available for this invoice.',
+                                  style: TextStyle(fontSize: 12, color: Colors.grey[600], fontStyle: FontStyle.italic),
                                 ),
-                              );
-                            },
-                          ),
+                              ),
+                            )
+                          else
+                            ListView.separated(
+                              shrinkWrap: true,
+                              physics: const NeverScrollableScrollPhysics(),
+                              itemCount: sale.items.length,
+                              separatorBuilder: (_, __) => Divider(height: 1, color: Colors.grey[200]),
+                              itemBuilder: (context, index) {
+                                final item = sale.items[index];
+                                final hasBatchOrExp = (item.batchNumber != null && item.batchNumber!.isNotEmpty) ||
+                                    item.expiryDate != null ||
+                                    item.discount > 0;
+
+                                return Padding(
+                                  padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 4.0),
+                                  child: Row(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      SizedBox(
+                                        width: 24,
+                                        child: Text(
+                                          '${index + 1}',
+                                          style: const TextStyle(fontSize: 11, color: Colors.grey),
+                                        ),
+                                      ),
+                                      Expanded(
+                                        flex: 3,
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              item.medicineName,
+                                              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.black87),
+                                            ),
+                                            if (hasBatchOrExp) ...[
+                                              const SizedBox(height: 2),
+                                              Wrap(
+                                                spacing: 6,
+                                                runSpacing: 2,
+                                                children: [
+                                                  if (item.batchNumber != null && item.batchNumber!.isNotEmpty)
+                                                    Text(
+                                                      'Batch: ${item.batchNumber}',
+                                                      style: TextStyle(fontSize: 10, color: Colors.grey[700]),
+                                                    ),
+                                                  if (item.expiryDate != null)
+                                                    Text(
+                                                      'Exp: ${DateFormat('yyyy/MM').format(item.expiryDate!)}',
+                                                      style: TextStyle(fontSize: 10, color: Colors.grey[700]),
+                                                    ),
+                                                  if (item.discount > 0)
+                                                    Text(
+                                                      'Disc: ${item.discount.toStringAsFixed(0)}%',
+                                                      style: const TextStyle(fontSize: 10, color: Colors.redAccent, fontWeight: FontWeight.w600),
+                                                    ),
+                                                ],
+                                              ),
+                                            ],
+                                          ],
+                                        ),
+                                      ),
+                                      SizedBox(
+                                        width: 40,
+                                        child: Text(
+                                          '${item.quantity}',
+                                          textAlign: TextAlign.center,
+                                          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                                        ),
+                                      ),
+                                      SizedBox(
+                                        width: 65,
+                                        child: Text(
+                                          item.price.toStringAsFixed(2),
+                                          textAlign: TextAlign.right,
+                                          style: const TextStyle(fontSize: 12),
+                                        ),
+                                      ),
+                                      SizedBox(
+                                        width: 75,
+                                        child: Text(
+                                          'Rs ${item.total.toStringAsFixed(2)}',
+                                          textAlign: TextAlign.right,
+                                          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.primaryGreen),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              },
+                            ),
 
                           const SizedBox(height: 12),
                           const Divider(thickness: 1.5, color: Colors.black26),

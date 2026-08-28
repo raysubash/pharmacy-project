@@ -1,7 +1,7 @@
+import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/pharmacy_profile_model.dart';
 import '../services/api_service.dart';
-import '../services/local_storage_service.dart';
 
 final profileProvider =
     AsyncNotifierProvider<ProfileNotifier, PharmacyProfile?>(() {
@@ -11,6 +11,12 @@ final profileProvider =
 class ProfileNotifier extends AsyncNotifier<PharmacyProfile?> {
   @override
   Future<PharmacyProfile?> build() async {
+    // Real-time polling: auto-refresh every 12 seconds
+    final timer = Timer.periodic(const Duration(seconds: 12), (_) {
+      ref.invalidateSelf();
+    });
+    ref.onDispose(() => timer.cancel());
+
     return ApiService.getProfile();
   }
 
@@ -22,7 +28,7 @@ class ProfileNotifier extends AsyncNotifier<PharmacyProfile?> {
         state = AsyncValue.data(updated);
       }
     } catch (e) {
-      await LocalStorageService.saveProfile(profile);
+      // Keep local optimistic state on error
       state = AsyncValue.data(profile);
     }
   }

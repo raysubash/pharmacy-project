@@ -1,13 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:intl/intl.dart';
 import 'package:fl_chart/fl_chart.dart';
 import '../../models/medicine_model.dart';
 import '../../providers/medicine_provider.dart';
 import '../../providers/sale_provider.dart';
-import '../../utils/theme.dart';
-import '../../widgets/app_drawer.dart';
 import '../../widgets/profile_avatar_icon.dart';
 
 class DashboardScreen extends ConsumerStatefulWidget {
@@ -22,46 +19,74 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   Widget build(BuildContext context) {
     final medicinesAsync = ref.watch(medicineProvider);
     final salesAsync = ref.watch(saleProvider);
-    // Bills provider not strictly needed for summary unless we count bills
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F7FA), // Light grey background
-      drawer: const AppDrawer(),
+      backgroundColor: const Color(0xFFF4F9F7), // Soft clean background
+      appBar: AppBar(
+        backgroundColor: Colors.white.withValues(alpha: 0.85),
+        elevation: 0,
+        scrolledUnderElevation: 2,
+        titleSpacing: 16,
+        title: Row(
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: Image.asset(
+                'assets/images/logo.png',
+                height: 32,
+                width: 32,
+                fit: BoxFit.contain,
+              ),
+            ),
+            const SizedBox(width: 10),
+            const Text(
+              'Dashboard',
+              style: TextStyle(
+                color: Color(0xFF003527),
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.search, color: Color(0xFF404944)),
+            onPressed: () => context.push('/search'),
+          ),
+          IconButton(
+            icon: const Icon(Icons.notifications_outlined, color: Color(0xFF404944)),
+            onPressed: () => context.push('/notifications'),
+          ),
+          const Padding(
+            padding: EdgeInsets.only(right: 16.0, left: 4.0),
+            child: ProfileAvatarIcon(
+              radius: 16,
+              iconColor: Color(0xFF003527),
+              backgroundColor: Color(0xFFE5EEFF),
+            ),
+          ),
+        ],
+      ),
       body: medicinesAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, st) => Center(child: Text('Error: $e')),
+        error: (e, st) => _buildErrorCard(context, ref, 'Failed to fetch inventory data. Please check your internet connection.'),
         data: (medicines) {
           return salesAsync.when(
             loading: () => const Center(child: CircularProgressIndicator()),
-            error: (e, st) => Center(child: Text('Error: $e')),
+            error: (e, st) => _buildErrorCard(context, ref, 'Failed to fetch sales data. Please check your internet connection.'),
             data: (sales) {
-              // --- Data Processing ---
+              // --- Data Calculations ---
               final totalMedicines = medicines.length;
-              final lowStock =
-                  medicines
-                      .where(
-                        (m) => m.activeStatuses.contains(MedicineStatus.lowStock),
-                      )
-                      .toList();
-              final expired =
-                  medicines
-                      .where(
-                        (m) => m.activeStatuses.contains(MedicineStatus.expired),
-                      )
-                      .toList();
-              final expiringsoon =
-                  medicines
-                      .where(
-                        (m) =>
-                            m.activeStatuses.contains(MedicineStatus.expiringSoon),
-                      )
-                      .toList();
-              final overStock =
-                  medicines
-                      .where(
-                        (m) => m.activeStatuses.contains(MedicineStatus.overStock),
-                      )
-                      .toList();
+              final lowStock = medicines
+                  .where((m) => m.activeStatuses.contains(MedicineStatus.lowStock))
+                  .toList();
+              final expired = medicines
+                  .where((m) => m.activeStatuses.contains(MedicineStatus.expired))
+                  .toList();
+              final expiringSoon = medicines
+                  .where((m) => m.activeStatuses.contains(MedicineStatus.expiringSoon))
+                  .toList();
 
               // Calculate Today's Sales
               final now = DateTime.now();
@@ -73,7 +98,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 (sum, s) => sum + s.grandTotal,
               );
 
-              // Calculate Weekly Sales for Sparkline
+              // Calculate 7-day sales spots for sparkline
               final weeklySales = List.generate(7, (index) {
                 final day = now.subtract(Duration(days: 6 - index));
                 final dailyTotal = sales
@@ -82,78 +107,38 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 return FlSpot(index.toDouble(), dailyTotal);
               });
 
-              return CustomScrollView(
-                slivers: [
-                  _buildSliverAppBar(context),
-                  SliverToBoxAdapter(
-                    child: Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          _buildSalesCard(
-                            context,
-                            todaySalesTotal,
-                            weeklySales,
-                            todaySalesList.length,
-                          ),
-                          const SizedBox(height: 20),
-                          Text(
-                            "Overview",
-                            style: Theme.of(
-                              context,
-                            ).textTheme.titleLarge?.copyWith(
-                              fontWeight: FontWeight.bold,
-                              color: Colors.black87,
-                            ),
-                          ),
-                          const SizedBox(height: 12),
-                          _buildStatGrid(
-                            totalMedicines,
-                            lowStock.length,
-                            expired.length,
-                          ),
-                          const SizedBox(height: 24),
-                          Text(
-                            "Quick Actions",
-                            style: Theme.of(
-                              context,
-                            ).textTheme.titleLarge?.copyWith(
-                              fontWeight: FontWeight.bold,
-                              color: Colors.black87,
-                            ),
-                          ),
-                          const SizedBox(height: 12),
-                          _buildQuickActions(context),
-                          if (lowStock.isNotEmpty ||
-                              expired.isNotEmpty ||
-                              expiringsoon.isNotEmpty ||
-                              overStock.isNotEmpty) ...[
-                            const SizedBox(height: 24),
-                            Text(
-                              "Attention Needed",
-                              style: Theme.of(
-                                context,
-                              ).textTheme.titleLarge?.copyWith(
-                                fontWeight: FontWeight.bold,
-                                color: Colors.black87,
-                              ),
-                            ),
-                            const SizedBox(height: 12),
-                            _buildAlerts(
-                              context,
-                              lowStock,
-                              expired,
-                              expiringsoon,
-                              overStock,
-                            ),
-                          ],
-                          const SizedBox(height: 80), // Bottom padding
-                        ],
-                      ),
+              return SingleChildScrollView(
+                physics: const BouncingScrollPhysics(),
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Section 1: Today's Sales Hero Card
+                    _buildSalesHeroCard(todaySalesTotal, weeklySales, todaySalesList.length),
+
+                    const SizedBox(height: 20),
+
+                    // Section 2: Quick Stats Grid (Medicines, Low Stock, Expired)
+                    _buildStatsGrid(totalMedicines, lowStock.length, expired.length),
+
+                    const SizedBox(height: 20),
+
+                    // Section 3: Quick Actions (2x2 Grid)
+                    _buildQuickActionsGrid(context),
+
+                    const SizedBox(height: 24),
+
+                    // Section 4: Attention Needed List
+                    _buildAttentionNeededSection(
+                      context,
+                      lowStock,
+                      expired,
+                      expiringSoon,
                     ),
-                  ),
-                ],
+
+                    const SizedBox(height: 40),
+                  ],
+                ),
               );
             },
           );
@@ -162,227 +147,105 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     );
   }
 
-  SliverAppBar _buildSliverAppBar(BuildContext context) {
-    return SliverAppBar(
-      expandedHeight: 220.0, // Increased height
-      pinned: true,
-      stretch: true,
-      backgroundColor: AppTheme.primaryGreen,
-      actions: const [
-        ProfileAvatarIcon(
-          radius: 20,
-          iconColor: Colors.white,
-          backgroundColor: Color(0x33FFFFFF),
-        ),
-      ],
-      flexibleSpace: FlexibleSpaceBar(
-        background: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                Color(0xFF4CAF50), // Green 500
-                Color(0xFF009688), // Teal 500
-              ],
-            ),
-          ),
-          child: Stack(
-            children: [
-              // Decorative circles
-              Positioned(
-                top: -50,
-                right: -50,
-                child: Container(
-                  width: 200,
-                  height: 200,
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.1),
-                    shape: BoxShape.circle,
-                  ),
-                ),
-              ),
-              Positioned(
-                bottom: -30,
-                left: -30,
-                child: Container(
-                  width: 140,
-                  height: 140,
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.1),
-                    shape: BoxShape.circle,
-                  ),
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 60, 20, 20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    Text(
-                      DateFormat('EEEE, d MMM').format(DateTime.now()),
-                      style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.9),
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    const SizedBox(height: 5),
-                    const Text(
-                      'Welcome Back, Pharmacist!',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-                    // Search Bar Mockup
-                    GestureDetector(
-                      onTap: () => context.push('/search'),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 12,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(30),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.1),
-                              blurRadius: 10,
-                              offset: const Offset(0, 5),
-                            ),
-                          ],
-                        ),
-                        child: Row(
-                          children: const [
-                            Icon(Icons.search, color: Colors.grey),
-                            SizedBox(width: 10),
-                            Expanded(
-                              child: Text(
-                                'Search medicines, bills...',
-                                style: TextStyle(color: Colors.grey),
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSalesCard(
-    BuildContext context,
+  // --- 1. Today's Sales Hero Card ---
+  Widget _buildSalesHeroCard(
     double todayTotal,
-    List<FlSpot> spots,
-    int todaySalesCount,
+    List<FlSpot> weeklySales,
+    int todayCount,
   ) {
     return Container(
-      height: 160,
+      width: double.infinity,
       decoration: BoxDecoration(
-        color: Colors.white,
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Color(0xFF064E3B), // Dark Emerald
+            Color(0xFF043D2E),
+            Color(0xFF022C22),
+          ],
+        ),
         borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withValues(alpha: 0.1),
-            spreadRadius: 2,
-            blurRadius: 10,
-            offset: const Offset(0, 4),
+            color: const Color(0xFF064E3B).withValues(alpha: 0.35),
+            blurRadius: 30,
+            offset: const Offset(0, 12),
           ),
         ],
       ),
       child: Stack(
         children: [
-          // Background Graph
-          Positioned.fill(
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(20),
-              child: LineChart(
-                LineChartData(
-                  gridData: const FlGridData(show: false),
-                  titlesData: const FlTitlesData(show: false),
-                  borderData: FlBorderData(show: false),
-                  lineBarsData: [
-                    LineChartBarData(
-                      spots: spots,
-                      isCurved: true,
-                      color: AppTheme.primaryGreen.withValues(alpha: 0.3),
-                      barWidth: 3,
-                      isStrokeCapRound: true,
-                      dotData: const FlDotData(show: false),
-                      belowBarData: BarAreaData(
-                        show: true,
-                        color: AppTheme.primaryGreen.withValues(alpha: 0.1),
-                      ),
-                    ),
-                  ],
-                  minY: 0,
-                ),
+          // Background Glow Effect
+          Positioned(
+            right: -20,
+            top: -20,
+            child: Container(
+              width: 140,
+              height: 140,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: const Color(0xFF006B5F).withValues(alpha: 0.4),
               ),
             ),
           ),
-          // Content
           Padding(
             padding: const EdgeInsets.all(20.0),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Column(
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Text(
-                      "Today's Sales",
-                      style: TextStyle(
-                        fontSize: 16,
-                        color: Colors.black54,
-                        fontWeight: FontWeight.w600,
-                      ),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          "Today's Sales",
+                          style: TextStyle(
+                            color: Colors.white70,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Rs. ${todayTotal.toStringAsFixed(0)}',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 30,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: -0.5,
+                          ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Rs ${todayTotal.toStringAsFixed(0)}',
-                      style: TextStyle(
-                        fontSize: 32,
-                        color: AppTheme.primaryGreen,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
                     Container(
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 4,
+                        horizontal: 10,
+                        vertical: 6,
                       ),
                       decoration: BoxDecoration(
-                        color: AppTheme.primaryGreen.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(8),
+                        color: Colors.white.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(
-                            Icons.receipt_long,
-                            size: 14,
-                            color: AppTheme.primaryGreen,
+                        children: const [
+                          Icon(
+                            Icons.trending_up,
+                            size: 16,
+                            color: Color(0xFF62FAE3),
                           ),
-                          const SizedBox(width: 4),
+                          SizedBox(width: 4),
                           Text(
-                            '$todaySalesCount transactions today',
-                            style: const TextStyle(
+                            '+15%',
+                            style: TextStyle(
+                              color: Colors.white,
                               fontSize: 12,
-                              color: AppTheme.primaryGreen,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
@@ -391,186 +254,153 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                     ),
                   ],
                 ),
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: AppTheme.primaryGreen.withValues(alpha: 0.1),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    Icons.monetization_on_outlined,
-                    color: AppTheme.primaryGreen,
-                    size: 28,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildStatGrid(int totalMedicines, int lowStock, int expired) {
-    return SizedBox(
-      height: 120, // Height for the row of cards
-      child: Row(
-        children: [
-          Expanded(
-            child: _buildInfoCard(
-              "Medicines",
-              "$totalMedicines",
-              Icons.medication_outlined,
-              Colors.blue,
-              Colors.blue.shade50,
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: _buildInfoCard(
-              "Low Stock",
-              "$lowStock",
-              Icons.warning_amber_rounded,
-              Colors.orange,
-              Colors.orange.shade50,
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: _buildInfoCard(
-              "Expired",
-              "$expired",
-              Icons.event_busy,
-              Colors.red,
-              Colors.red.shade50,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildInfoCard(
-    String title,
-    String value,
-    IconData icon,
-    Color color,
-    Color bgColor,
-  ) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withValues(alpha: 0.05),
-            spreadRadius: 1,
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(12.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(color: bgColor, shape: BoxShape.circle),
-              child: Icon(icon, color: color, size: 20),
-            ),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  value,
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black87,
-                  ),
-                ),
-                Text(
-                  title,
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey[600],
-                    fontWeight: FontWeight.w500,
+                const SizedBox(height: 20),
+                // Sparkline Representation using LineChart
+                SizedBox(
+                  height: 60,
+                  width: double.infinity,
+                  child: LineChart(
+                    LineChartData(
+                      gridData: const FlGridData(show: false),
+                      titlesData: const FlTitlesData(show: false),
+                      borderData: FlBorderData(show: false),
+                      lineBarsData: [
+                        LineChartBarData(
+                          spots: weeklySales,
+                          isCurved: true,
+                          color: const Color(0xFF3CDDC7),
+                          barWidth: 3,
+                          isStrokeCapRound: true,
+                          dotData: const FlDotData(show: false),
+                          belowBarData: BarAreaData(
+                            show: true,
+                            gradient: LinearGradient(
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                              colors: [
+                                const Color(0xFF3CDDC7).withValues(alpha: 0.35),
+                                const Color(0xFF3CDDC7).withValues(alpha: 0.0),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                      minY: 0,
+                    ),
                   ),
                 ),
               ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildQuickActions(BuildContext context) {
+  // --- 2. Quick Stats Grid ---
+  Widget _buildStatsGrid(int totalMeds, int lowStockCount, int expiredCount) {
     return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceAround,
       children: [
-        _buildActionButton(
-          context,
-          'New Sale',
-          Icons.shopping_cart_checkout,
-          const Color(0xFF4CAF50), // Green
-          () => context.push('/customer_bill'),
+        // Card 1: Medicines
+        Expanded(
+          child: _buildStatCard(
+            title: 'Medicines',
+            value: '$totalMeds',
+            icon: Icons.medication,
+            iconColor: const Color(0xFF00628D),
+            iconBg: const Color(0xFFE0F2FE),
+            bgGradient: const LinearGradient(
+              colors: [Colors.white, Color(0xFFEDF7F4)],
+            ),
+            borderColor: Colors.white.withValues(alpha: 0.6),
+          ),
         ),
-        _buildActionButton(
-          context,
-          'Add Item',
-          Icons.add_circle_outline,
-          const Color(0xFF2196F3), // Blue
-          () => context.push('/medicines/add'),
+        const SizedBox(width: 12),
+
+        // Card 2: Low Stock
+        Expanded(
+          child: _buildStatCard(
+            title: 'Low Stock',
+            value: '$lowStockCount',
+            icon: Icons.warning_amber_rounded,
+            iconColor: const Color(0xFFD97706),
+            iconBg: const Color(0xFFFEF3C7),
+            bgGradient: const LinearGradient(
+              colors: [Colors.white, Color(0xFFFFF8ED)],
+            ),
+            borderColor: const Color(0xFFF59E0B).withValues(alpha: 0.3),
+          ),
         ),
-        _buildActionButton(
-          context,
-          'Sales History',
-          Icons.history,
-          const Color(0xFFFF9800), // Orange
-          () => context.go('/bills'),
-        ),
-        _buildActionButton(
-          context,
-          'Suppliers',
-          Icons.local_shipping,
-          const Color(0xFF9C27B0), // Purple
-          () => context.go('/returns'),
+        const SizedBox(width: 12),
+
+        // Card 3: Expired
+        Expanded(
+          child: _buildStatCard(
+            title: 'Expired',
+            value: '$expiredCount',
+            icon: Icons.error_outline_rounded,
+            iconColor: const Color(0xFFDC2626),
+            iconBg: const Color(0xFFFEE2E2),
+            bgGradient: const LinearGradient(
+              colors: [Colors.white, Color(0xFFFFF0F0)],
+            ),
+            borderColor: const Color(0xFFEF4444).withValues(alpha: 0.3),
+          ),
         ),
       ],
     );
   }
 
-  Widget _buildActionButton(
-    BuildContext context,
-    String label,
-    IconData icon,
-    Color color,
-    VoidCallback onTap,
-  ) {
-    return GestureDetector(
-      onTap: onTap,
+  Widget _buildStatCard({
+    required String title,
+    required String value,
+    required IconData icon,
+    required Color iconColor,
+    required Color iconBg,
+    required LinearGradient bgGradient,
+    required Color borderColor,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 10),
+      decoration: BoxDecoration(
+        gradient: bgGradient,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: borderColor),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF064E3B).withValues(alpha: 0.05),
+            blurRadius: 16,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
       child: Column(
         children: [
           Container(
-            width: 60,
-            height: 60,
+            width: 40,
+            height: 40,
             decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(18),
+              color: iconBg,
+              shape: BoxShape.circle,
             ),
-            child: Icon(icon, color: color, size: 28),
+            child: Icon(icon, color: iconColor, size: 22),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 10),
           Text(
-            label,
+            value,
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: iconColor,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            title,
             style: const TextStyle(
               fontSize: 12,
-              fontWeight: FontWeight.w600,
-              color: Colors.black87,
+              color: Color(0xFF404944),
+              fontWeight: FontWeight.w500,
             ),
           ),
         ],
@@ -578,136 +408,405 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     );
   }
 
-  Widget _buildAlerts(
-    BuildContext context,
-    List<Medicine> lowStockMedicines,
-    List<Medicine> expiredMedicines,
-    List<Medicine> expiringSoonMedicines,
-    List<Medicine> overStockMedicines,
-  ) {
-    List<Widget> alerts = [];
-
-    if (lowStockMedicines.isNotEmpty) {
-      alerts.add(
-        _buildAlertTile(
-          "${lowStockMedicines.length} items are low in stock",
-          Icons.warning,
-          Colors.orange,
-          () {
-            context.go('/medicines?filter=lowStock');
-          },
-        ),
-      );
-
-      for (final medicine in lowStockMedicines.take(3)) {
-        alerts.add(const SizedBox(height: 8));
-        alerts.add(
-          _buildAlertTile(
-            '${medicine.name} (${medicine.currentStock} left)',
-            Icons.medication,
-            Colors.orange,
-            () {
-              context.go('/medicines?filter=lowStock');
-            },
+  // --- 3. Quick Actions (2x2 Grid) ---
+  Widget _buildQuickActionsGrid(BuildContext context) {
+    return GridView.count(
+      crossAxisCount: 2,
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      crossAxisSpacing: 10,
+      mainAxisSpacing: 10,
+      childAspectRatio: 2.2,
+      children: [
+        // Action 1: New Sale
+        _buildGradientActionButton(
+          label: 'New Sale',
+          icon: Icons.add_shopping_cart,
+          gradient: const LinearGradient(
+            colors: [Color(0xFF003527), Color(0xFF064E3B)],
           ),
-        );
-      }
+          textColor: Colors.white,
+          onTap: () => context.push('/customer_bill'),
+        ),
 
-      if (lowStockMedicines.length > 3) {
-        alerts.add(const SizedBox(height: 8));
-        alerts.add(
-          Align(
-            alignment: Alignment.centerLeft,
-            child: Text(
-              '+${lowStockMedicines.length - 3} more low stock medicines',
-              style: TextStyle(
-                color: Colors.orange.shade800,
-                fontWeight: FontWeight.w600,
-                fontSize: 13,
-              ),
-            ),
+        // Action 2: Add Item
+        _buildGradientActionButton(
+          label: 'Add Item',
+          icon: Icons.add_box_outlined,
+          gradient: const LinearGradient(
+            colors: [Color(0xFF006B5F), Color(0xFF004F46)],
           ),
-        );
-      }
-    }
-
-    if (expiredMedicines.isNotEmpty) {
-      alerts.add(const SizedBox(height: 8));
-      alerts.add(
-        _buildAlertTile(
-          "${expiredMedicines.length} items have expired",
-          Icons.error,
-          Colors.red,
-          () {
-            context.go('/medicines?filter=expiring');
-          },
+          textColor: Colors.white,
+          onTap: () => context.push('/medicines/add'),
         ),
-      );
-    }
 
-    if (expiringSoonMedicines.isNotEmpty) {
-      alerts.add(const SizedBox(height: 8));
-      alerts.add(
-        _buildAlertTile(
-          "${expiringSoonMedicines.length} items expiring in 3 months",
-          Icons.schedule,
-          Colors.amber,
-          () {
-            context.go('/medicines?filter=expiring');
-          },
+        // Action 3: Sales History
+        _buildOutlineActionButton(
+          label: 'Sales History',
+          icon: Icons.history,
+          onTap: () => context.go('/bills'),
         ),
-      );
-    }
 
-    if (overStockMedicines.isNotEmpty) {
-      alerts.add(const SizedBox(height: 8));
-      alerts.add(
-        _buildAlertTile(
-          "${overStockMedicines.length} items overstock (unused 2+ months)",
-          Icons.inventory_2,
-          Colors.purple,
-          () {
-            context.go('/medicines?filter=overStock');
-          },
+        // Action 4: Suppliers
+        _buildOutlineActionButton(
+          label: 'Suppliers',
+          icon: Icons.local_shipping_outlined,
+          onTap: () => context.go('/suppliers'),
         ),
-      );
-    }
-
-    return Column(children: alerts);
+      ],
+    );
   }
 
-  Widget _buildAlertTile(
-    String message,
-    IconData icon,
-    Color color,
-    VoidCallback onTap,
-  ) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: color.withValues(alpha: 0.3)),
+  Widget _buildGradientActionButton({
+    required String label,
+    required IconData icon,
+    required LinearGradient gradient,
+    required Color textColor,
+    required VoidCallback onTap,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: gradient,
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF003527).withValues(alpha: 0.2),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(14),
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(icon, color: textColor, size: 18),
+                const SizedBox(width: 6),
+                Flexible(
+                  child: Text(
+                    label,
+                    style: TextStyle(
+                      color: textColor,
+                      fontSize: 13,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 1,
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
-        child: Row(
-          children: [
-            Icon(icon, color: color, size: 20),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                message,
+      ),
+    );
+  }
+
+  Widget _buildOutlineActionButton({
+    required String label,
+    required IconData icon,
+    required VoidCallback onTap,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Colors.white, Color(0xFFF4F9F7)],
+        ),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.white),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF064E3B).withValues(alpha: 0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(14),
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(icon, color: const Color(0xFF003527), size: 18),
+                const SizedBox(width: 6),
+                Flexible(
+                  child: Text(
+                    label,
+                    style: const TextStyle(
+                      color: Color(0xFF003527),
+                      fontSize: 13,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 1,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildErrorCard(BuildContext context, WidgetRef ref, String message) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24.0),
+        child: Container(
+          padding: const EdgeInsets.all(24.0),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.05),
+                blurRadius: 20,
+                offset: const Offset(0, 5),
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(
+                Icons.cloud_off_rounded,
+                size: 56,
+                color: Color(0xFFD97706),
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'Connection Issue',
                 style: TextStyle(
-                  color: color.withValues(alpha: 0.9),
-                  fontWeight: FontWeight.w600,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF0B1C30),
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                message,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontSize: 13,
+                  color: Colors.black54,
+                ),
+              ),
+              const SizedBox(height: 20),
+              ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF003527),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                onPressed: () {
+                  ref.invalidate(medicineProvider);
+                  ref.invalidate(saleProvider);
+                },
+                icon: const Icon(Icons.refresh, size: 18),
+                label: const Text('Retry Connection'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // --- 4. Attention Needed List Section ---
+  Widget _buildAttentionNeededSection(
+    BuildContext context,
+    List<Medicine> lowStock,
+    List<Medicine> expired,
+    List<Medicine> expiringSoon,
+  ) {
+    final hasAlerts = lowStock.isNotEmpty || expired.isNotEmpty || expiringSoon.isNotEmpty;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Text(
+              'Attention Needed',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF0B1C30),
+              ),
+            ),
+            TextButton(
+              onPressed: () => context.push('/notifications'),
+              child: const Text(
+                'View All',
+                style: TextStyle(
+                  color: Color(0xFF006B5F),
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
                 ),
               ),
             ),
-            Icon(
-              Icons.arrow_forward_ios,
-              size: 14,
-              color: color.withValues(alpha: 0.7),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Container(
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [Colors.white, Color(0xFFEDF7F4)],
+            ),
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: Colors.white),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF064E3B).withValues(alpha: 0.08),
+                blurRadius: 24,
+                offset: const Offset(0, 6),
+              ),
+            ],
+          ),
+          child: Column(
+            children: [
+              if (!hasAlerts)
+                const Padding(
+                  padding: EdgeInsets.all(24.0),
+                  child: Center(
+                    child: Text(
+                      'All caught up! No inventory items need immediate attention.',
+                      style: TextStyle(color: Colors.grey, fontSize: 14),
+                    ),
+                  ),
+                )
+              else ...[
+                // Low Stock Alerts
+                for (final m in lowStock.take(2))
+                  _buildAttentionItemTile(
+                    title: m.name,
+                    subtitle: 'Low Stock: ${m.currentStock} left',
+                    icon: Icons.inventory_2_outlined,
+                    iconColor: const Color(0xFFD97706),
+                    iconBg: const Color(0xFFFEF3C7),
+                    isWarning: true,
+                    onTap: () => context.go('/medicines?filter=lowStock'),
+                  ),
+
+                // Expired Alerts
+                for (final m in expired.take(2))
+                  _buildAttentionItemTile(
+                    title: m.name,
+                    subtitle: 'Expired Items: ${m.currentStock}',
+                    icon: Icons.event_busy,
+                    iconColor: const Color(0xFFDC2626),
+                    iconBg: const Color(0xFFFEE2E2),
+                    isWarning: false,
+                    onTap: () => context.go('/medicines?filter=expiring'),
+                  ),
+
+                // Expiring Soon Alerts
+                for (final m in expiringSoon.take(2))
+                  _buildAttentionItemTile(
+                    title: m.name,
+                    subtitle: 'Expiring in ${m.daysUntilExpiry ?? 30} days',
+                    icon: Icons.schedule,
+                    iconColor: const Color(0xFF9333EA),
+                    iconBg: const Color(0xFFF3E8FF),
+                    isWarning: true,
+                    onTap: () => context.go('/medicines?filter=expiringSoon'),
+                  ),
+              ],
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildAttentionItemTile({
+    required String title,
+    required String subtitle,
+    required IconData icon,
+    required Color iconColor,
+    required Color iconBg,
+    required bool isWarning,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        decoration: const BoxDecoration(
+          border: Border(
+            bottom: BorderSide(color: Color(0x0F000000), width: 1),
+          ),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: iconBg,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, color: iconColor, size: 20),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF0B1C30),
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Row(
+                    children: [
+                      Icon(
+                        isWarning ? Icons.warning_amber_rounded : Icons.error_outline,
+                        size: 14,
+                        color: iconColor,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        subtitle,
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: iconColor,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            IconButton(
+              icon: Icon(
+                isWarning ? Icons.add : Icons.chevron_right,
+                color: const Color(0xFF006B5F),
+              ),
+              onPressed: onTap,
             ),
           ],
         ),

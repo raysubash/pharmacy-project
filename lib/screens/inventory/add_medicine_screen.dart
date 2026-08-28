@@ -180,6 +180,8 @@ class _AddMedicineScreenState extends ConsumerState<AddMedicineScreen> {
             ? existingId
             : const Uuid().v4();
 
+        final isEditing = widget.medicineToEdit != null;
+
         final newMedicine = Medicine(
           id: validId,
           name: _nameController.text.trim(),
@@ -193,7 +195,11 @@ class _AddMedicineScreenState extends ConsumerState<AddMedicineScreen> {
           mrp: double.tryParse(_originalmrpController.text),
           packaging: _packagingController.text.trim(),
           storageLocation: _locationController.text.trim(),
-          currentStock: int.tryParse(_initialStockController.text) ?? 0,
+          // On edit: keep existing stock (backend strips currentStock from PUT anyway)
+          // On add: pass initial stock (backend creates INITIAL transaction if > 0)
+          currentStock: isEditing
+              ? widget.medicineToEdit!.currentStock
+              : (int.tryParse(_initialStockController.text) ?? 0),
           imagePath: _selectedImage?.path ?? widget.medicineToEdit?.imagePath,
           batchNumber: _batchNumberController.text.trim(),
           expiryDate: _selectedExpiryDate,
@@ -472,10 +478,17 @@ class _AddMedicineScreenState extends ConsumerState<AddMedicineScreen> {
                   Expanded(
                     child: TextFormField(
                       controller: _initialStockController,
-                      decoration: const InputDecoration(
-                        labelText: 'Current Stock',
+                      decoration: InputDecoration(
+                        labelText: widget.medicineToEdit != null
+                            ? 'Current Stock (read-only)'
+                            : 'Initial Stock',
+                        helperText: widget.medicineToEdit != null
+                            ? 'Use Adjust Stock to change'
+                            : null,
                       ),
                       keyboardType: TextInputType.number,
+                      readOnly: widget.medicineToEdit != null,
+                      enabled: widget.medicineToEdit == null,
                     ),
                   ),
                   const SizedBox(width: 12),

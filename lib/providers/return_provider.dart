@@ -1,6 +1,7 @@
+import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/return_model.dart';
-import '../services/local_storage_service.dart';
+import '../services/api_service.dart';
 
 final returnProvider = AsyncNotifierProvider<ReturnNotifier, List<ReturnItem>>(
   () {
@@ -11,37 +12,40 @@ final returnProvider = AsyncNotifierProvider<ReturnNotifier, List<ReturnItem>>(
 class ReturnNotifier extends AsyncNotifier<List<ReturnItem>> {
   @override
   Future<List<ReturnItem>> build() async {
-    return LocalStorageService.getAllReturns();
+    // Real-time polling: auto-refresh every 8 seconds
+    final timer = Timer.periodic(const Duration(seconds: 8), (_) {
+      ref.invalidateSelf();
+    });
+    ref.onDispose(() => timer.cancel());
+
+    return await ApiService.getAllReturns();
   }
 
   Future<void> addReturn(ReturnItem returnItem) async {
-    // state = const AsyncValue.loading(); // Don't wipe the list immediately
     try {
-      await LocalStorageService.addReturn(returnItem);
-      // ref.invalidateSelf(); // This triggers a full refresh
-      // Optimized: Just refresh without clearing if possible, or let the UI handle the 'refreshing' state
+      await ApiService.addReturn(returnItem);
       ref.invalidateSelf();
     } catch (e, st) {
-      state = AsyncValue.error(e, st); // Set error state if adding fails
-      rethrow; // Re-throw so the UI knows it failed!
+      state = AsyncValue.error(e, st);
+      rethrow;
     }
   }
 
   Future<void> updateReturn(String id, ReturnItem returnItem) async {
     try {
-      await LocalStorageService.updateReturn(id, returnItem);
+      // TODO: Add ApiService.updateReturn when backend supports it
       ref.invalidateSelf();
-    } catch (e) {
-      // Handle error
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
     }
   }
 
   Future<void> deleteReturn(String id) async {
     try {
-      await LocalStorageService.deleteReturn(id);
+      await ApiService.deleteReturn(id);
       ref.invalidateSelf();
-    } catch (e) {
-      // Handle error
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
     }
   }
 }

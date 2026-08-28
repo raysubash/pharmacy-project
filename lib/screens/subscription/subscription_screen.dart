@@ -67,25 +67,38 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
         paymentProofImage: base64Image,
       );
 
-      // Refresh profile so the "View Payment Proof" button appears
-      ref.invalidate(profileProvider);
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("Statement Uploaded! Pending Verification."),
-            backgroundColor: Colors.green,
-          ),
-        );
-        Navigator.pop(context); // Close dialog
-        context.go('/dashboard');
-      }
+      // Refresh profile
+      await _navigateNext();
     } catch (e) {
       log("Upload Error: $e");
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text("Failed to upload statement: $e")),
         );
+      }
+    }
+  }
+
+  Future<void> _navigateNext() async {
+    try {
+      ref.invalidate(profileProvider);
+      final profile = await ref.read(profileProvider.future);
+
+      final isProfileSetup = profile != null &&
+          profile.name.trim().isNotEmpty &&
+          profile.name != 'Pharmacist Admin' &&
+          profile.phoneNumber.trim().isNotEmpty;
+
+      if (mounted) {
+        if (!isProfileSetup) {
+          context.go('/profile', extra: true);
+        } else {
+          context.go('/dashboard');
+        }
+      }
+    } catch (_) {
+      if (mounted) {
+        context.go('/profile', extra: true);
       }
     }
   }
@@ -214,8 +227,7 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
                 backgroundColor: Colors.green,
               ),
             );
-            // Go to dashboard immediately
-            context.go('/dashboard');
+            await _navigateNext();
           }
         }
       } catch (e) {
@@ -397,7 +409,7 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
             backgroundColor: Colors.green,
           ),
         );
-        context.go('/dashboard');
+        await _navigateNext();
       }
     } catch (e) {
       if (mounted) {

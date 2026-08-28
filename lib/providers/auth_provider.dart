@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
-import '../services/local_storage_service.dart';
+import '../services/api_service.dart';
 
 // Create a simple Auth State class
 class AuthState {
@@ -47,13 +47,10 @@ class AuthState {
 class AuthNotifier extends StateNotifier<AuthState> {
   AuthNotifier() : super(AuthState());
 
-  static const String _baseUrl = 'http://localhost:5000/api/auth';
+  static String get _baseUrl => '${ApiService.baseUrl}/auth';
 
   Future<void> login(String email, String password) async {
     state = state.copyWith(isLoading: true, error: null);
-
-    // Add local bypass for demo/offline logic if desired
-    // For now, let's try network first, then check local if needed (not fully implemented yet)
 
     try {
       final response = await http.post(
@@ -82,10 +79,6 @@ class AuthNotifier extends StateNotifier<AuthState> {
             await prefs.setString('role', role ?? 'pharmacist');
           }
 
-          await LocalStorageService.setActiveUserKey(
-            userId ?? email.trim().toLowerCase(),
-          );
-
           state = AuthState(
             isLoading: false,
             token: token,
@@ -110,22 +103,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
-  Future<void> loginAsGuest() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('token', 'guest_token');
-    await prefs.setString('userId', 'guest_user');
-    await prefs.setString('userName', 'Pharmacist (Offline)');
-    await prefs.setString('role', 'pharmacist');
-    await LocalStorageService.setActiveUserKey('guest_user');
 
-    state = AuthState(
-      isLoading: false,
-      token: 'guest_token',
-      userId: 'guest_user',
-      userName: 'Pharmacist (Offline)',
-      role: 'pharmacist',
-    );
-  }
 
   Future<void> signup(String name, String email, String password) async {
     state = state.copyWith(isLoading: true, error: null);
@@ -139,9 +117,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
       final data = jsonDecode(response.body);
 
       if (response.statusCode == 201) {
-        // Automatically login or just stop loading
         state = state.copyWith(isLoading: false);
-        // We can optionally login here directly if the backend returns a token on signup
         if (data['token'] != null) {
           final prefs = await SharedPreferences.getInstance();
           await prefs.setString('token', data['token']);
@@ -157,10 +133,6 @@ class AuthNotifier extends StateNotifier<AuthState> {
             await prefs.setString('userName', userName!);
             await prefs.setString('role', role ?? 'pharmacist');
           }
-
-          await LocalStorageService.setActiveUserKey(
-            userId ?? email.trim().toLowerCase(),
-          );
 
           state = state.copyWith(
             token: data['token'],
@@ -182,11 +154,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
   Future<void> logout() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.remove('token');
-    await prefs.remove('userId');
-    await prefs.remove('userName');
-    await prefs.remove('role');
-    await LocalStorageService.setActiveUserKey(null);
+    await prefs.clear();
     state = AuthState();
   }
 
@@ -197,9 +165,6 @@ class AuthNotifier extends StateNotifier<AuthState> {
     final userName = prefs.getString('userName');
     final role = prefs.getString('role');
     if (token != null) {
-      await LocalStorageService.setActiveUserKey(
-        userId ?? userName ?? 'guest_user',
-      );
       state = state.copyWith(
         token: token,
         userId: userId,

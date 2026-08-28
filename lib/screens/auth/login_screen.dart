@@ -28,18 +28,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     super.dispose();
   }
 
-  Future<void> _handleDemoLogin() async {
-    _emailController.text = 'adminsubash@gmail.com';
-    _passwordController.text = 'adminsubash';
-    await _handleLogin();
-  }
-
-  Future<void> _handleDemoPharmacistLogin() async {
-    _emailController.text = 'demo@pharmacy.com';
-    _passwordController.text = 'demo123';
-    await _handleLogin();
-  }
-
   Future<void> _handleLogin() async {
     if (_formKey.currentState!.validate()) {
       await ref
@@ -70,39 +58,37 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             return;
           }
 
-          // Login successful
-          // Check if profile is set up
+          // Login successful: Sequence: login -> subscription -> profile setup -> dashboard
           try {
             // Refresh to get latest data from server
             ref.invalidate(profileProvider);
             final profile = await ref.read(profileProvider.future);
 
             if (mounted) {
-              if (profile == null || profile.name.isEmpty) {
-                // No profile set up -> Go to Profile Setup
-                context.go('/profile', extra: true);
-              } else if (profile.subscription?.isActive != true &&
-                  (profile.subscription?.paymentProofImage == null ||
-                      profile.subscription!.paymentProofImage!.isEmpty)) {
-                // No active subscription and no pending proof -> Go to Subscription
+              final isActiveSub = profile?.subscription?.isActive == true ||
+                  (profile?.subscription?.paymentProofImage != null &&
+                      profile!.subscription!.paymentProofImage!.isNotEmpty);
+
+              final isProfileSetup = profile != null &&
+                  profile.name.trim().isNotEmpty &&
+                  profile.name != 'Pharmacist Admin' &&
+                  profile.phoneNumber.trim().isNotEmpty;
+
+              if (!isActiveSub) {
+                // Step 2: Subscription Screen
                 context.go('/subscription');
+              } else if (!isProfileSetup) {
+                // Step 3: Profile Setup Screen
+                context.go('/profile', extra: true);
               } else {
-                // Profile exists -> Go to Dashboard
+                // Step 4: Dashboard Screen
                 context.go('/dashboard');
               }
             }
           } catch (e) {
-            // If error fetching profile (e.g. network issue), go to dashboard or handle
-            // Assuming if 404/null it returns null above, but if exception:
+            // If error fetching profile, send to subscription to be safe
             if (mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text(
-                    'Could not verify profile. Going to dashboard.',
-                  ),
-                ),
-              );
-              context.go('/dashboard');
+              context.go('/subscription');
             }
           }
         }
@@ -133,16 +119,20 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(
-                        Icons.local_pharmacy,
-                        size: 64,
-                        color: AppTheme.primaryGreen,
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(16),
+                        child: Image.asset(
+                          'assets/images/logo.png',
+                          height: 100,
+                          width: 100,
+                          fit: BoxFit.contain,
+                        ),
                       ),
                       const SizedBox(height: 16),
                       const Text(
-                        'Pharmacy Login',
+                        'AusadhiTrack Login',
                         style: TextStyle(
-                          fontSize: 24,
+                          fontSize: 22,
                           fontWeight: FontWeight.bold,
                           color: AppTheme.primaryGreen,
                         ),
@@ -199,84 +189,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       TextButton(
                         onPressed: () => context.go('/signup'),
                         child: const Text('Create New Account'),
-                      ),
-                      const SizedBox(height: 24),
-                      // ── Demo Login (REMOVE before deployment) ──
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: Colors.orange.shade50,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: Colors.orange.shade300,
-                            width: 1.5,
-                            // ignore: deprecated_member_use
-                          ),
-                        ),
-                        child: Column(
-                          children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(
-                                  Icons.science,
-                                  size: 16,
-                                  color: Colors.orange.shade700,
-                                ),
-                                const SizedBox(width: 6),
-                                Text(
-                                  'Testing Only',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w600,
-                                    color: Colors.orange.shade700,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 12),
-                            SizedBox(
-                              width: double.infinity,
-                              height: 44,
-                              child: ElevatedButton.icon(
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.orange.shade600,
-                                  foregroundColor: Colors.white,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(10),
-                                  ),
-                                ),
-                                onPressed: isLoading ? null : _handleDemoLogin,
-                                icon: const Icon(Icons.rocket_launch, size: 18),
-                                label: const Text(
-                                  'Demo Login (Admin)',
-                                  style: TextStyle(fontWeight: FontWeight.w600),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 10),
-                            SizedBox(
-                              width: double.infinity,
-                              height: 44,
-                              child: ElevatedButton.icon(
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.teal.shade600,
-                                  foregroundColor: Colors.white,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(10),
-                                  ),
-                                ),
-                                onPressed: isLoading ? null : _handleDemoPharmacistLogin,
-                                icon: const Icon(Icons.local_pharmacy, size: 18),
-                                label: const Text(
-                                  'Demo Login (Pharmacist)',
-                                  style: TextStyle(fontWeight: FontWeight.w600),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
                       ),
                     ],
                   ),

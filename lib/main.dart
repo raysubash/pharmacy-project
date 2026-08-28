@@ -2,14 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'router/app_router.dart';
 import 'utils/theme.dart';
-import 'services/local_storage_service.dart';
 import 'providers/auth_provider.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
-  // Initialize LocalStorage (Hive)
-  await LocalStorageService.init();
 
   final container = ProviderContainer();
   // Check for existing login session

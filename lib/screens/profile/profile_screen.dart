@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -8,8 +9,11 @@ import 'package:file_picker/file_picker.dart';
 import '../../models/pharmacy_profile_model.dart';
 import '../../providers/profile_provider.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/bill_provider.dart';
+import '../../providers/medicine_provider.dart';
+import '../../providers/return_provider.dart';
+import '../../providers/sale_provider.dart';
 import '../../utils/theme.dart';
-import '../../widgets/app_drawer.dart';
 import '../../widgets/profile_avatar_icon.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
@@ -26,27 +30,30 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   Future<void> _pickAndSaveImage(ImageSource source) async {
     final messenger = ScaffoldMessenger.of(context);
     try {
-      String? selectedImagePath;
+      Uint8List? imageBytes;
       if (!kIsWeb && (Platform.isAndroid || Platform.isIOS)) {
         final picker = ImagePicker();
         final pickedFile = await picker.pickImage(
           source: source,
-          imageQuality: 85,
+          imageQuality: 70,
         );
         if (pickedFile != null) {
-          selectedImagePath = pickedFile.path;
+          imageBytes = await pickedFile.readAsBytes();
         }
       } else {
-        // Desktop / Fallback
         final result = await FilePicker.platform.pickFiles(
           type: FileType.image,
+          withData: true,
         );
-        if (result != null && result.files.single.path != null) {
-          selectedImagePath = result.files.single.path;
+        if (result != null && result.files.single.bytes != null) {
+          imageBytes = result.files.single.bytes;
+        } else if (result != null && result.files.single.path != null) {
+          imageBytes = await File(result.files.single.path!).readAsBytes();
         }
       }
 
-      if (selectedImagePath != null) {
+      if (imageBytes != null) {
+        final base64Image = 'data:image/jpeg;base64,${base64Encode(imageBytes)}';
         final currentProfile = ref.read(profileProvider).value;
         final updatedProfile = PharmacyProfile(
           id: currentProfile?.id ?? '',
@@ -55,7 +62,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           panNumber: currentProfile?.panNumber ?? '1234-123-9874',
           phoneNumber: currentProfile?.phoneNumber ?? '9841234567',
           subscription: currentProfile?.subscription,
-          profileImagePath: selectedImagePath,
+          profileImagePath: base64Image,
         );
 
         await ref.read(profileProvider.notifier).saveProfile(updatedProfile);
@@ -252,6 +259,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                           );
 
                           try {
+                            final router = GoRouter.of(context);
                             await ref.read(profileProvider.notifier).saveProfile(updated);
                             messenger.showSnackBar(
                               const SnackBar(
@@ -259,6 +267,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                 backgroundColor: AppTheme.primaryGreen,
                               ),
                             );
+                            if (widget.isSetupMode) {
+                              router.go('/dashboard');
+                            }
                           } catch (e) {
                             messenger.showSnackBar(
                               SnackBar(content: Text('Error updating profile: $e')),
@@ -355,6 +366,44 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     );
   }
 
+  void _showLogoutConfirmationDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text('Logout Confirmation', style: TextStyle(fontWeight: FontWeight.bold)),
+        content: const Text('Are you sure you want to log out of your pharmacy account?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+          ),
+          ElevatedButton.icon(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            onPressed: () async {
+              Navigator.pop(context);
+              await ref.read(authProvider.notifier).logout();
+              ref.invalidate(medicineProvider);
+              ref.invalidate(saleProvider);
+              ref.invalidate(billProvider);
+              ref.invalidate(returnProvider);
+              ref.invalidate(profileProvider);
+
+              if (!context.mounted) return;
+              context.go('/login');
+            },
+            icon: const Icon(Icons.logout, size: 18),
+            label: const Text('Logout'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final profileAsync = ref.watch(profileProvider);
@@ -362,7 +411,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
     return Scaffold(
       backgroundColor: const Color(0xFFF4F6F8),
-      drawer: widget.isSetupMode ? null : const AppDrawer(),
       body: profileAsync.when(
         loading: () => const Center(child: CircularProgressIndicator(color: AppTheme.primaryGreen)),
         error: (err, stack) => Center(child: Text('Error loading profile: $err')),
@@ -452,7 +500,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                               child: IconButton(
                                 icon: const Icon(Icons.arrow_back, color: Colors.white),
                                 onPressed: () {
-                                  if (context.canPop()) {
+                                  if (widget.isSetupMode) {
+                                    context.go('/subscription');
+                                  } else if (context.canPop()) {
                                     context.pop();
                                   } else {
                                     context.go('/dashboard');
@@ -659,13 +709,42 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                 : () => _showEditProfileBottomSheet(profile),
                             child: _isLoading
                                 ? const CircularProgressIndicator(color: Colors.white)
-                                : const Text(
-                                    'Edit Profile',
-                                    style: TextStyle(
+                                : Text(
+                                    widget.isSetupMode
+                                        ? 'Setup Pharmacy Profile'
+                                        : 'Edit Profile',
+                                    style: const TextStyle(
                                       fontSize: 17,
                                       fontWeight: FontWeight.bold,
                                     ),
                                   ),
+                          ),
+                        ),
+
+                        const SizedBox(height: 14),
+
+                        // Bottom Outlined Red Button: Logout
+                        SizedBox(
+                          width: double.infinity,
+                          height: 52,
+                          child: OutlinedButton.icon(
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: Colors.red,
+                              side: const BorderSide(color: Colors.red, width: 1.5),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(26),
+                              ),
+                            ),
+                            onPressed: () => _showLogoutConfirmationDialog(context),
+                            icon: const Icon(Icons.logout, color: Colors.red, size: 20),
+                            label: const Text(
+                              'LOG OUT',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
                           ),
                         ),
 

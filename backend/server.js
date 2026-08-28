@@ -32,6 +32,7 @@ const profileRoutes = require("./routes/profileRoutes");
 const saleRoutes = require("./routes/saleRoutes");
 const authRoutes = require("./routes/authRoutes");
 const adminRoutes = require("./routes/adminRoutes");
+const stockRoutes = require("./routes/stockRoutes");
 
 app.use("/api/medicines", medicineRoutes);
 app.use("/api/bills", billRoutes);
@@ -40,6 +41,7 @@ app.use("/api/profile", profileRoutes);
 app.use("/api/sales", saleRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/admin", adminRoutes);
+app.use("/api/stock", stockRoutes);
 
 const subscriptionRoutes = require("./routes/subscriptionRoutes");
 app.use("/api/subscription", subscriptionRoutes);

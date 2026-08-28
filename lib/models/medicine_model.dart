@@ -1,19 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:hive/hive.dart';
 
-part 'medicine_model.g.dart';
-
-@HiveType(typeId: 0)
 enum MeasureUnit {
-  @HiveField(0)
   tablet,
-  @HiveField(1)
   syrup,
-  @HiveField(2)
   capsule,
-  @HiveField(3)
   injection,
-  @HiveField(4)
   other,
 }
 
@@ -87,41 +78,24 @@ extension MedicineStatusX on MedicineStatus {
   }
 }
 
-@HiveType(typeId: 1)
 class Medicine {
-  @HiveField(0)
   final String id;
-  @HiveField(1)
   final String name;
-  @HiveField(2)
   final String? genericName;
-  @HiveField(3)
   final String category;
-  @HiveField(4)
   final MeasureUnit unit;
-  @HiveField(5)
   final int minStock;
-  @HiveField(6)
   final double sellingPrice;
-  @HiveField(7)
   final String? storageLocation;
-  @HiveField(8)
-  int currentStock;
-  @HiveField(9)
+  final int currentStock;
   final String? brandName;
-  @HiveField(10)
   final String? packaging;
-  @HiveField(11)
   final double? mrp;
-  @HiveField(12)
   final String? imagePath;
-  @HiveField(13)
   final String? batchNumber;
-  @HiveField(14)
+  final String? barcode;
   final DateTime? expiryDate;
-  @HiveField(15)
   final DateTime createdDate;
-  @HiveField(16)
   final int? maxStock;
 
   Medicine({
@@ -139,6 +113,7 @@ class Medicine {
     this.mrp,
     this.imagePath,
     this.batchNumber,
+    this.barcode,
     this.expiryDate,
     this.maxStock,
     DateTime? createdDate,
@@ -226,6 +201,7 @@ class Medicine {
       mrp: (json['mrp'] as num?)?.toDouble(),
       imagePath: json['imagePath'],
       batchNumber: json['batchNumber'],
+      barcode: json['barcode'],
       expiryDate:
           json['expiryDate'] != null
               ? DateTime.parse(json['expiryDate'])
@@ -254,6 +230,30 @@ class Medicine {
       'mrp': mrp,
       'imagePath': imagePath,
       'batchNumber': batchNumber,
+      'barcode': barcode,
+      'expiryDate': expiryDate?.toIso8601String(),
+      'maxStock': maxStock,
+      'createdDate': createdDate.toIso8601String(),
+    };
+  }
+
+  /// For update operations — excludes currentStock since it's managed by stock transactions
+  Map<String, dynamic> toJsonForUpdate() {
+    return {
+      if (id.isNotEmpty) '_id': id,
+      'name': name,
+      'genericName': genericName,
+      'category': category,
+      'unit': unit.toString().split('.').last,
+      'minStock': minStock,
+      'sellingPrice': sellingPrice,
+      'storageLocation': storageLocation,
+      'brandName': brandName,
+      'packaging': packaging,
+      'mrp': mrp,
+      'imagePath': imagePath,
+      'batchNumber': batchNumber,
+      'barcode': barcode,
       'expiryDate': expiryDate?.toIso8601String(),
       'maxStock': maxStock,
       'createdDate': createdDate.toIso8601String(),

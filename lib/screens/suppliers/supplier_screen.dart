@@ -2,13 +2,13 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
 import '../../models/supplier_model.dart';
 import '../../providers/supplier_provider.dart';
 import '../../utils/theme.dart';
-import '../../widgets/app_drawer.dart';
 import '../../widgets/contact_actions.dart';
 import '../../widgets/profile_avatar_icon.dart';
 
@@ -44,16 +44,19 @@ class _SupplierScreenState extends ConsumerState<SupplierScreen> {
 
     return Scaffold(
       backgroundColor: const Color(0xFFF7FAFA),
-      drawer: const AppDrawer(),
       appBar: AppBar(
         elevation: 0,
         backgroundColor: Colors.white,
         foregroundColor: Colors.black87,
-        leading: Builder(
-          builder: (context) => IconButton(
-            icon: const Icon(Icons.menu, color: Colors.black87),
-            onPressed: () => Scaffold.of(context).openDrawer(),
-          ),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.black87),
+          onPressed: () {
+            if (context.canPop()) {
+              context.pop();
+            } else {
+              context.go('/dashboard');
+            }
+          },
         ),
         title: Row(
           children: const [
@@ -67,8 +70,15 @@ class _SupplierScreenState extends ConsumerState<SupplierScreen> {
             ),
           ],
         ),
-        actions: const [
-          ProfileAvatarIcon(radius: 20),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.notifications_outlined, color: Colors.black87),
+            onPressed: () => context.push('/notifications'),
+          ),
+          const Padding(
+            padding: EdgeInsets.only(right: 12.0, left: 4.0),
+            child: ProfileAvatarIcon(radius: 18),
+          ),
         ],
       ),
       body: SingleChildScrollView(

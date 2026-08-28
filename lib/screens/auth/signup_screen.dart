@@ -120,11 +120,22 @@ class _SignupScreenState extends ConsumerState<SignupScreen>
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(16),
+                            child: Image.asset(
+                              'assets/images/logo.png',
+                              height: 80,
+                              width: 80,
+                              fit: BoxFit.contain,
+                            ),
+                          ),
+                          const SizedBox(height: 12),
                           const Text(
                             'Create Account',
                             style: TextStyle(
-                              fontSize: 24,
+                              fontSize: 22,
                               fontWeight: FontWeight.bold,
+                              color: AppTheme.primaryGreen,
                             ),
                           ),
                           const SizedBox(height: 24),

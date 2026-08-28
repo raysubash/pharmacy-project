@@ -6,7 +6,6 @@ import 'package:go_router/go_router.dart';
 import '../../utils/theme.dart';
 import '../../models/medicine_model.dart';
 import '../../providers/medicine_provider.dart';
-import '../../widgets/app_drawer.dart';
 import '../../widgets/profile_avatar_icon.dart';
 import '../../widgets/medicine_details_dialog.dart';
 
@@ -51,33 +50,6 @@ class _MedicineInventoryScreenState
     super.dispose();
   }
 
-  void _updateStock(Medicine medicine, int change) async {
-    final newStock = medicine.currentStock + change;
-    if (newStock >= 0) {
-      final updatedMedicine = Medicine(
-        id: medicine.id,
-        name: medicine.name,
-        genericName: medicine.genericName,
-        category: medicine.category,
-        unit: medicine.unit,
-        minStock: medicine.minStock,
-        sellingPrice: medicine.sellingPrice,
-        storageLocation: medicine.storageLocation,
-        currentStock: newStock,
-        brandName: medicine.brandName,
-        packaging: medicine.packaging,
-        mrp: medicine.mrp,
-        imagePath: medicine.imagePath,
-        batchNumber: medicine.batchNumber,
-        expiryDate: medicine.expiryDate,
-        createdDate: medicine.createdDate,
-      );
-
-      await ref
-          .read(medicineProvider.notifier)
-          .updateMedicine(medicine.id, updatedMedicine);
-    }
-  }
 
   void _confirmDelete(Medicine medicine) {
     showDialog(
@@ -244,8 +216,17 @@ class _MedicineInventoryScreenState
 
     return Scaffold(
       key: _scaffoldKey,
-      drawer: const AppDrawer(),
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () {
+            if (context.canPop()) {
+              context.pop();
+            } else {
+              context.go('/dashboard');
+            }
+          },
+        ),
         title: const Text(
           'Medicine Inventory',
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
@@ -254,11 +235,18 @@ class _MedicineInventoryScreenState
         elevation: 0,
         centerTitle: true,
         iconTheme: const IconThemeData(color: Colors.white),
-        actions: const [
-          ProfileAvatarIcon(
-            radius: 20,
-            iconColor: Colors.white,
-            backgroundColor: Color(0x33FFFFFF),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.notifications_outlined, color: Colors.white),
+            onPressed: () => context.push('/notifications'),
+          ),
+          const Padding(
+            padding: EdgeInsets.only(right: 12.0, left: 4.0),
+            child: ProfileAvatarIcon(
+              radius: 18,
+              iconColor: Colors.white,
+              backgroundColor: Color(0x33FFFFFF),
+            ),
           ),
         ],
       ),
@@ -545,28 +533,43 @@ class _MedicineInventoryScreenState
                                   tooltip: 'Delete Medicine',
                                 ),
                                 const Spacer(),
-                                _buildQuantityButton(
-                                  icon: Icons.remove,
-                                  color: const Color(0xFFEFF3F6),
-                                  iconColor: Colors.black,
-                                  onTap: () => _updateStock(medicine, -1),
-                                ),
+                                // Read-only stock display
                                 Container(
-                                  width: 40,
-                                  alignment: Alignment.center,
-                                  child: Text(
-                                    '${medicine.currentStock}',
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 16,
+                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                  decoration: BoxDecoration(
+                                    color: medicine.currentStock <= medicine.minStock
+                                        ? const Color(0xFFFFF8E1)
+                                        : const Color(0xFFF5F7FA),
+                                    borderRadius: BorderRadius.circular(8),
+                                    border: Border.all(
+                                      color: medicine.currentStock <= medicine.minStock
+                                          ? Colors.orange.shade300
+                                          : Colors.grey.shade300,
                                     ),
                                   ),
-                                ),
-                                _buildQuantityButton(
-                                  icon: Icons.add,
-                                  color: AppTheme.primaryGreen,
-                                  iconColor: Colors.white,
-                                  onTap: () => _updateStock(medicine, 1),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(
+                                        Icons.inventory_2_outlined,
+                                        size: 14,
+                                        color: medicine.currentStock <= medicine.minStock
+                                            ? Colors.orange[700]
+                                            : Colors.grey[600],
+                                      ),
+                                      const SizedBox(width: 6),
+                                      Text(
+                                        'Stock: ${medicine.currentStock}',
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 13,
+                                          color: medicine.currentStock <= medicine.minStock
+                                              ? Colors.orange[800]
+                                              : const Color(0xFF2D3436),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               ],
                             ),
@@ -624,24 +627,4 @@ class _MedicineInventoryScreenState
     );
   }
 
-  Widget _buildQuantityButton({
-    required IconData icon,
-    required Color color,
-    required Color iconColor,
-    required VoidCallback onTap,
-  }) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(8),
-      child: Container(
-        width: 32,
-        height: 32,
-        decoration: BoxDecoration(
-          color: color,
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Icon(icon, color: iconColor, size: 18),
-      ),
-    );
-  }
 }

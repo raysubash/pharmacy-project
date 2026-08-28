@@ -19,6 +19,7 @@ const medicineSchema = new mongoose.Schema(
     mrp: { type: Number },
     imagePath: { type: String },
     batchNumber: { type: String },
+    barcode: { type: String, unique: true, sparse: true, index: true },
     expiryDate: { type: Date },
   },
   { timestamps: true },

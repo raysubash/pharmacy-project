@@ -1,26 +1,12 @@
-import 'package:hive/hive.dart';
-
-part 'sale_model.g.dart';
-
-@HiveType(typeId: 2)
 class SaleItem {
-  @HiveField(0)
   final String medicineId;
-  @HiveField(1)
   final String medicineName;
-  @HiveField(2)
   final int quantity;
-  @HiveField(3)
   final double price; // Selling Price or CC/RATE
-  @HiveField(4)
   final double discount;
-  @HiveField(5)
   final double total;
-  @HiveField(6)
   final String? batchNumber;
-  @HiveField(7)
   final DateTime? expiryDate;
-  @HiveField(8)
   final double? mrp;
 
   SaleItem({
@@ -36,19 +22,46 @@ class SaleItem {
   });
 
   factory SaleItem.fromJson(Map<String, dynamic> json) {
+    String medName = '';
+    if (json['medicineName'] != null && json['medicineName'].toString().isNotEmpty) {
+      medName = json['medicineName'].toString();
+    } else if (json['name'] != null && json['name'].toString().isNotEmpty) {
+      medName = json['name'].toString();
+    } else if (json['medicine'] != null) {
+      if (json['medicine'] is Map && json['medicine']['name'] != null) {
+        medName = json['medicine']['name'].toString();
+      } else if (json['medicine'] is String) {
+        medName = json['medicine'].toString();
+      }
+    }
+
+    String medId = '';
+    if (json['medicineId'] != null) {
+      medId = json['medicineId'].toString();
+    } else if (json['medicine'] != null && json['medicine'] is Map && json['medicine']['_id'] != null) {
+      medId = json['medicine']['_id'].toString();
+    } else if (json['id'] != null) {
+      medId = json['id'].toString();
+    }
+
+    int qty = int.tryParse((json['quantity'] ?? json['qty'] ?? 1).toString()) ?? 1;
+    double prc = double.tryParse((json['price'] ?? json['rate'] ?? json['sellingPrice'] ?? json['mrp'] ?? 0).toString()) ?? 0.0;
+    double disc = double.tryParse((json['discount'] ?? 0).toString()) ?? 0.0;
+    double tot = double.tryParse((json['total'] ?? json['amount'] ?? (qty * prc)).toString()) ?? (qty * prc);
+
     return SaleItem(
-      medicineId: json['medicineId'],
-      medicineName: json['medicineName'],
-      quantity: int.parse(json['quantity'].toString()),
-      price: double.parse(json['price'].toString()),
-      discount: double.parse((json['discount'] ?? 0).toString()),
-      total: double.parse(json['total'].toString()),
-      batchNumber: json['batchNumber'],
+      medicineId: medId,
+      medicineName: medName.isEmpty ? 'Medicine Item' : medName,
+      quantity: qty,
+      price: prc,
+      discount: disc,
+      total: tot,
+      batchNumber: json['batchNumber'] ?? json['batch'] ?? json['batchNo'],
       expiryDate:
           json['expiryDate'] != null
-              ? DateTime.parse(json['expiryDate'])
+              ? DateTime.tryParse(json['expiryDate'].toString())
               : null,
-      mrp: json['mrp'] != null ? double.parse(json['mrp'].toString()) : null,
+      mrp: json['mrp'] != null ? double.tryParse(json['mrp'].toString()) : (prc > 0 ? prc : null),
     );
   }
 
@@ -67,33 +80,19 @@ class SaleItem {
   }
 }
 
-@HiveType(typeId: 3)
 class Sale {
-  @HiveField(0)
   final String? id;
-  @HiveField(1)
   final String invoiceNumber;
-  @HiveField(2)
   final String customerName;
-  @HiveField(3)
   final String? customerPhone;
-  @HiveField(4)
   final String? customerAddress;
-  @HiveField(5)
   final String? customerPan;
-  @HiveField(6)
   final String payMode;
-  @HiveField(7)
   final List<SaleItem> items;
-  @HiveField(8)
   final double subTotal;
-  @HiveField(9)
   final double discount;
-  @HiveField(10)
   final double tax;
-  @HiveField(11)
   final double grandTotal;
-  @HiveField(12)
   final DateTime date;
 
   Sale({
@@ -113,23 +112,74 @@ class Sale {
   });
 
   factory Sale.fromJson(Map<String, dynamic> json) {
-    var itemsList = json['items'] as List;
-    List<SaleItem> items = itemsList.map((i) => SaleItem.fromJson(i)).toList();
+    var rawItems = json['items'];
+    List<SaleItem> items = [];
+    if (rawItems is List) {
+      items = rawItems.map((i) {
+        if (i is Map<String, dynamic>) {
+          return SaleItem.fromJson(i);
+        } else if (i is Map) {
+          return SaleItem.fromJson(Map<String, dynamic>.from(i));
+        }
+        return SaleItem(medicineId: '', medicineName: 'Item', quantity: 1, price: 0, total: 0);
+      }).toList();
+    }
+
+    String getRawPayMode(Map<String, dynamic> map) {
+      final keys = [
+        'payMode',
+        'paymentMode',
+        'pay_mode',
+        'payment_mode',
+        'paymentMethod',
+        'payMethod',
+        'payment_method',
+        'pay_method',
+        'paymentType',
+        'payment_type',
+        'payType',
+        'pay_type',
+        'mode',
+        'payment',
+        'type',
+        'method'
+      ];
+      for (final key in keys) {
+        final val = map[key]?.toString().trim();
+        if (val != null && val.isNotEmpty && val.toLowerCase() != 'null') {
+          return val;
+        }
+      }
+      return 'Cash';
+    }
+
+    final rawPayMode = getRawPayMode(json);
+    String normalizedPayMode = 'Cash';
+    if (rawPayMode.toLowerCase().contains('fone') ||
+        rawPayMode.toLowerCase().contains('qr') ||
+        rawPayMode.toLowerCase().contains('online') ||
+        rawPayMode.toLowerCase().contains('digital')) {
+      normalizedPayMode = 'Fonepay';
+    } else if (rawPayMode.toLowerCase().contains('credit')) {
+      normalizedPayMode = 'Credit';
+    } else {
+      normalizedPayMode = 'Cash';
+    }
 
     return Sale(
-      id: json['_id'],
-      invoiceNumber: json['invoiceNumber'] ?? '',
-      customerName: json['customerName'] ?? '',
-      customerPhone: json['customerPhone'],
-      customerAddress: json['customerAddress'],
-      customerPan: json['customerPan'],
-      payMode: json['payMode'] ?? 'Cash',
+      id: json['_id'] ?? json['id'],
+      invoiceNumber: json['invoiceNumber'] ?? json['invoiceNo'] ?? '',
+      customerName: json['customerName'] ?? json['customer']?['name'] ?? json['customer'] ?? '',
+      customerPhone: json['customerPhone'] ?? json['customer']?['phone'],
+      customerAddress: json['customerAddress'] ?? json['customer']?['address'],
+      customerPan: json['customerPan'] ?? json['customer']?['pan'],
+      payMode: normalizedPayMode,
       items: items,
-      subTotal: double.parse((json['subTotal'] ?? 0).toString()),
-      discount: double.parse((json['discount'] ?? 0).toString()),
-      tax: double.parse((json['tax'] ?? 0).toString()),
-      grandTotal: double.parse((json['grandTotal'] ?? 0).toString()),
-      date: DateTime.parse(json['date']),
+      subTotal: double.tryParse((json['subTotal'] ?? json['subtotal'] ?? 0).toString()) ?? 0.0,
+      discount: double.tryParse((json['discount'] ?? 0).toString()) ?? 0.0,
+      tax: double.tryParse((json['tax'] ?? 0).toString()) ?? 0.0,
+      grandTotal: double.tryParse((json['grandTotal'] ?? json['total'] ?? 0).toString()) ?? 0.0,
+      date: json['date'] != null ? (DateTime.tryParse(json['date'].toString()) ?? DateTime.now()) : DateTime.now(),
     );
   }
 
@@ -142,6 +192,21 @@ class Sale {
       'customerAddress': customerAddress,
       'customerPan': customerPan,
       'payMode': payMode,
+      'paymentMode': payMode,
+      'pay_mode': payMode,
+      'payment_mode': payMode,
+      'paymentMethod': payMode,
+      'payMethod': payMode,
+      'payment_method': payMode,
+      'pay_method': payMode,
+      'paymentType': payMode,
+      'payment_type': payMode,
+      'payType': payMode,
+      'pay_type': payMode,
+      'mode': payMode,
+      'payment': payMode,
+      'type': payMode,
+      'method': payMode,
       'items': items.map((e) => e.toJson()).toList(),
       'subTotal': subTotal,
       'discount': discount,

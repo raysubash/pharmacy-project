@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../providers/bill_provider.dart';
 import '../../utils/theme.dart';
-import '../../widgets/app_drawer.dart';
 import 'package:intl/intl.dart';
 
 class PurchaseBillScreen extends ConsumerWidget {
@@ -14,8 +13,19 @@ class PurchaseBillScreen extends ConsumerWidget {
     final billsAsync = ref.watch(billProvider);
 
     return Scaffold(
-      drawer: const AppDrawer(),
-      appBar: AppBar(title: const Text('Purchase Bills')),
+      appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () {
+            if (context.canPop()) {
+              context.pop();
+            } else {
+              context.go('/dashboard');
+            }
+          },
+        ),
+        title: const Text('Purchase Bills'),
+      ),
       floatingActionButton: FloatingActionButton(
         heroTag: 'purchase_bill_fab',
         onPressed: () {

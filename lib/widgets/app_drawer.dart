@@ -34,19 +34,33 @@ class AppDrawer extends ConsumerWidget {
                     style: TextStyle(color: Colors.white),
                   ),
               data: (profile) {
-                final name = profile?.name ?? 'Ausadhi Track';
+                final name = profile?.name ?? 'AusadhiTrack';
                 final location =
-                    profile?.location ?? 'Pharmacy Management System';
+                    profile?.location ?? 'AusadhiTrack Pharmacy System';
 
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
-                    const ProfileAvatarIcon(
-                      radius: 28,
-                      isClickable: false,
-                      iconColor: AppTheme.primaryGreen,
-                      backgroundColor: Colors.white,
+                    Row(
+                      children: [
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(10),
+                          child: Image.asset(
+                            'assets/images/logo.png',
+                            height: 44,
+                            width: 44,
+                            fit: BoxFit.contain,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        const ProfileAvatarIcon(
+                          radius: 22,
+                          isClickable: false,
+                          iconColor: AppTheme.primaryGreen,
+                          backgroundColor: Colors.white,
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 10),
                     Text(
@@ -75,7 +89,7 @@ class AppDrawer extends ConsumerWidget {
             leading: const Icon(Icons.dashboard),
             title: const Text('Dashboard'),
             onTap: () {
-              Navigator.pop(context);
+              if (Scaffold.of(context).isDrawerOpen) Navigator.pop(context);
               context.go('/dashboard');
             },
           ),
@@ -83,7 +97,7 @@ class AppDrawer extends ConsumerWidget {
             leading: const Icon(Icons.medication),
             title: const Text('Medicines'),
             onTap: () {
-              Navigator.pop(context);
+              if (Scaffold.of(context).isDrawerOpen) Navigator.pop(context);
               context.go('/medicines');
             },
           ),
@@ -91,7 +105,7 @@ class AppDrawer extends ConsumerWidget {
             leading: const Icon(Icons.history),
             title: const Text('Sales History'),
             onTap: () {
-              Navigator.pop(context);
+              if (Scaffold.of(context).isDrawerOpen) Navigator.pop(context);
               context.go('/bills');
             },
           ),
@@ -99,7 +113,7 @@ class AppDrawer extends ConsumerWidget {
             leading: const Icon(Icons.local_shipping),
             title: const Text('Suppliers Directory'),
             onTap: () {
-              Navigator.pop(context);
+              if (Scaffold.of(context).isDrawerOpen) Navigator.pop(context);
               context.go('/suppliers');
             },
           ),
@@ -107,7 +121,7 @@ class AppDrawer extends ConsumerWidget {
             leading: const Icon(Icons.bar_chart),
             title: const Text('Reports'),
             onTap: () {
-              Navigator.pop(context);
+              if (Scaffold.of(context).isDrawerOpen) Navigator.pop(context);
               context.go('/reports');
             },
           ),
@@ -115,7 +129,7 @@ class AppDrawer extends ConsumerWidget {
             leading: const Icon(Icons.receipt),
             title: const Text('Customer Bill'),
             onTap: () {
-              Navigator.pop(context);
+              if (Scaffold.of(context).isDrawerOpen) Navigator.pop(context);
               context.push('/customer_bill');
             },
           ),
@@ -123,7 +137,7 @@ class AppDrawer extends ConsumerWidget {
             leading: const Icon(Icons.payment),
             title: const Text('Subscription'),
             onTap: () {
-              Navigator.pop(context);
+              if (Scaffold.of(context).isDrawerOpen) Navigator.pop(context);
               context.push('/subscription');
             },
           ),
@@ -132,7 +146,7 @@ class AppDrawer extends ConsumerWidget {
             leading: const Icon(Icons.person),
             title: const Text('Profile'),
             onTap: () {
-              Navigator.pop(context);
+              if (Scaffold.of(context).isDrawerOpen) Navigator.pop(context);
               context.go('/profile');
             },
           ),

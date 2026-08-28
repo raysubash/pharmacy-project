@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -11,16 +12,24 @@ ImageProvider? getAvatarImageProvider(String? imagePath) {
   if (path.startsWith('http://') || path.startsWith('https://')) {
     return NetworkImage(path);
   }
+  if (path.startsWith('data:image') || path.length > 300) {
+    try {
+      final base64Str = path.contains(',') ? path.split(',').last : path;
+      final bytes = base64Decode(base64Str);
+      return MemoryImage(bytes);
+    } catch (e) {
+      debugPrint('Error decoding base64 avatar: $e');
+    }
+  }
   try {
     final file = File(path);
     if (file.existsSync()) {
       return FileImage(file);
     }
-    return FileImage(file);
   } catch (e) {
     debugPrint('Error creating FileImage for path $path: $e');
-    return null;
   }
+  return null;
 }
 
 class ProfileAvatarIcon extends ConsumerWidget {

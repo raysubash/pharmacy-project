@@ -70,15 +70,15 @@ class _SalesHistoryScreenState extends ConsumerState<SalesHistoryScreen> {
     );
 
     if (confirmed == true && mounted) {
+      // ignore: use_build_context_synchronously
+      final messenger = ScaffoldMessenger.of(context);
       await ref.read(saleProvider.notifier).clearAllSales();
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('All sales history deleted successfully!'),
-            backgroundColor: Colors.redAccent,
-          ),
-        );
-      }
+      messenger.showSnackBar(
+        const SnackBar(
+          content: Text('All sales history deleted successfully!'),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
     }
   }
 
@@ -110,19 +110,6 @@ class _SalesHistoryScreenState extends ConsumerState<SalesHistoryScreen> {
             icon: const Icon(Icons.delete_sweep_outlined, color: Colors.white),
             tooltip: 'Clear All Sales History',
             onPressed: () => _confirmClearAllSales(context),
-          ),
-          IconButton(
-            icon: const Icon(Icons.add_shopping_cart, color: Colors.white),
-            tooltip: 'New Sale',
-            onPressed: () => context.push('/customer_bill'),
-          ),
-          IconButton(
-            icon: const Icon(Icons.notifications_outlined, color: Colors.white),
-            onPressed: () => context.push('/notifications'),
-          ),
-          IconButton(
-            icon: const Icon(Icons.refresh, color: Colors.white),
-            onPressed: () => ref.invalidate(saleProvider),
           ),
           const Padding(
             padding: EdgeInsets.only(right: 12.0, left: 4.0),

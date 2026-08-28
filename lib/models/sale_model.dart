@@ -112,6 +112,9 @@ class Sale {
   });
 
   factory Sale.fromJson(Map<String, dynamic> json) {
+    if (json.containsKey('sale') && json['sale'] is Map) {
+      json = Map<String, dynamic>.from(json['sale'] as Map);
+    }
     var rawItems = json['items'];
     List<SaleItem> items = [];
     if (rawItems is List) {

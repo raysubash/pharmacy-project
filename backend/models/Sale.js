@@ -1,7 +1,7 @@
 const mongoose = require("mongoose");
 
 const saleItemSchema = new mongoose.Schema({
-  medicineId: { type: String, required: true },
+  medicineId: { type: String, default: "N/A" },
   medicineName: { type: String, required: true },
   quantity: { type: Number, required: true },
   price: { type: Number, required: true },
@@ -28,11 +28,10 @@ const saleSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-saleSchema.pre("validate", function (next) {
+saleSchema.pre("validate", function () {
   const mode = this.payMode || this.paymentMode || "Cash";
   this.payMode = mode;
   this.paymentMode = mode;
-  next();
 });
 
 module.exports = mongoose.model("Sale", saleSchema);
